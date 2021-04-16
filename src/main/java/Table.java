@@ -11,6 +11,7 @@ class Table implements Serializable{
     Long size;
     // dll that holds the references "names" of the pages on the desk
     Deque<PageInfo> buckets;
+    //
 
     
     public Table(String name, Hashtable columsInfos){

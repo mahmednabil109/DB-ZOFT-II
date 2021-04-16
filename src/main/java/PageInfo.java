@@ -1,4 +1,5 @@
 import java.io.Serializable;
+import java.util.Vector;
 
 // class to hold needed info for each page
 class PageInfo implements Serializable{
@@ -7,7 +8,6 @@ class PageInfo implements Serializable{
     private String pageName;
     // min and max value of the promarykey in this tabel
     Object min, max;
-
     
     public PageInfo(){
         // each page would have a unique name which is the hash of the object points to it
