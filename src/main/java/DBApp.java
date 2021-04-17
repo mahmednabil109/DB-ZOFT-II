@@ -89,7 +89,7 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void deleteFromTable(String tableName, Hashtable<String, Object> columnNameValue) throws DBAppException {
-        this.getTable(tableName).delete(columnNameValue);
+        this._getTable(tableName).delete(columnNameValue);
     }
 
     @Override
@@ -97,7 +97,7 @@ public class DBApp implements DBAppInterface {
         return null;
     }
 
-    private Table getTable(String tableName) {
+    private Table _getTable(String tableName) {
         for (Table t : tables)
             if (t.name.equals(tableName))
                 return t;
