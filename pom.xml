@@ -9,9 +9,19 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
+        <RESOURCE_PATH>${project.basedir}/src/main/resources</RESOURCE_PATH>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
+
+    <build>
+        <resources>
+            <resource>
+            <directory>${RESOURCE_PATH}</directory>
+            <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
 
 
     <dependencies>

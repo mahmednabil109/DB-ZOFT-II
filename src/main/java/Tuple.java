@@ -2,35 +2,38 @@ import java.util.*;
 
 class Tuple implements Comparable<Tuple>{
     
+    // the name of the primaryKey to compare based on it
+    String primaryKeyName;
     // list of obects to store data of the row
-    List<Object> data;
-    // the position of the primaryKey to compare based on it
-    int primayKeyPos;
+    Hashtable<String, Object> data;
 
 
-    public Tuple(int pkp, Object ...args){
-        this.primayKeyPos = pkp;
-        data = Arrays.asList(args);
-        // System.out.println("this is a Tuple!");
+    public Tuple(String primaryKeyName, Hashtable<String, Object> rowData ){
+        this.primaryKeyName = primaryKeyName;
+        this.data = (Hashtable<String, Object>) rowData.clone();
     }
 
 
     Object getPrimeKey(){
-        return data.get(primayKeyPos);
+        return this.get(this.primaryKeyName);
+    }
+
+    Object get (String columnName){
+        return data.get(columnName);
     }
 
     @Override
     public int compareTo(Tuple o) {
         Object pk = this.getPrimeKey();
         Class pkClass = pk.getClass();
-        // TODO remove logs
-        // System.out.println(pkClass);
         return ((Comparable) pkClass.cast(pk)).compareTo(pkClass.cast(o.getPrimeKey()));
     }
 
     // TODO override this with something useful
     @Override
     public String toString(){
-        return "" + this.getPrimeKey();
+        Object pk = this.getPrimeKey();
+        Class cl  = pk.getClass();
+        return cl.cast(pk).toString();
     }
 }
