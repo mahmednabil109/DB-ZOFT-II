@@ -52,7 +52,7 @@ class Table implements Serializable {
         }
 
         // save the table object to the disk
-        this.saveChanges();
+        this._saveChanges();
     }
 
     public void insert(Hashtable<Object, Object> arg) {
@@ -136,7 +136,7 @@ class Table implements Serializable {
 
     // this method saves serialize and saves the table object
     // whenever any changes habbens inside the object
-    private void saveChanges() {
+    private void _saveChanges() {
         try {
             // serialize the object
             Path p = Paths.get(Resources.getResourcePath(), "tables", this.toString());
