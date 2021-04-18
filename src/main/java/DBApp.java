@@ -128,19 +128,20 @@ public class DBApp implements DBAppInterface {
         // t2 = new Tuple(1, new Integer(100), new String("bthis is the first Tuple"));
         // System.out.println(t1.compareTo(t2));
 
-        int data[] = new int[]{10,102,45,123,5123,12};
-        Vector<Tuple> page = new Vector<Tuple>();
-        for(int d : data){
-            Hashtable<String, Object> htb = new Hashtable<String, Object>();
-            htb.put("id", d);
-            page.add(new Tuple("id", htb));
-        }
-        System.out.println(page);
-        Collections.sort(page);
-        System.out.println(page);
+        // int data[] = new int[]{10,102,45,123,5123,12};
+        // Vector<Tuple> page = new Vector<Tuple>();
+        // for(int d : data){
+        //     Hashtable<String, Object> htb = new Hashtable<String, Object>();
+        //     htb.put("id", d);
+        //     page.add(new Tuple("id", htb));
+        // }
+        // System.out.println(page);
+        // Collections.sort(page);
+        // System.out.println(page);
 
-        DBApp p = new DBApp();
+        // DBApp p = new DBApp();
         // System.out.printf("[DONE] %d \n", DBApp.maxPerPage);
+        System.out.println(DBApp.class.getResource(""));
     }
 
 }

@@ -80,10 +80,18 @@ class Table implements Serializable {
 
         // first we call _searchRows to get the needed rows to be deleted
         Hashtable<Page, Vector<Integer>> rows = _searchRows(columnNameVlaue);
+        // if there are no rows that satsifiy the conditions return
         if(rows == null) return;
-
-        // second we load each page and delete the key from them
-        // then we call _defragment to handle the empty spaces and delete the pages
+        // delete the records from the pages
+        for(Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()){
+            for(Integer i : entries.getValue())
+                entries.getKey().data.remove(i.intValue());
+            // TODO rethink about freeing the pages
+            entries.getKey().saveAndFree();
+        }
+        // TODO then we need to handle the after delete actions
+        // like delete the empty page 
+        // or maybe shift all the rows to minmize the disk usages
     }
 
     // gets the rows by matching all the columnNameValues
@@ -92,6 +100,7 @@ class Table implements Serializable {
         Hashtable<Page, Vector<Integer>> result = new Hashtable<Page, Vector<Integer>>();
         String [] entries = (String []) columnNameVlaue.keySet().toArray();
        
+        // getting the needed pages to work with
         for (Page page : buckets) {
             page.load();
             boolean free = true;
@@ -125,6 +134,7 @@ class Table implements Serializable {
             }
             result = tmp;
         }
+        if(result.size() == 0) return null;
         return result;
     }
 
