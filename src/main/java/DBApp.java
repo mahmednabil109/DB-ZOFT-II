@@ -16,7 +16,6 @@ public class DBApp implements DBAppInterface {
     static int maxPerPage;
     // TODO to be added Max number of keys in Index_Buckets
 
-
     // static block to init GLOBAL_PARAMS
     static {
         try {
@@ -79,6 +78,12 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void insertIntoTable(String tableName, Hashtable<String, Object> colNameValue) throws DBAppException {
+        Table t = this._getTable(tableName);
+        if (t == null) {
+            throw new DBAppException();
+        } else {
+            t.insert(colNameValue);
+        }
     }
 
     @Override

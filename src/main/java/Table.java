@@ -12,7 +12,7 @@ class Table implements Serializable {
     // hashtabel to store the columns names and types
     Hashtable<String, String> htbColumnsNameType, htbColumsMin, htbColumsMax;
     // dll that holds the references "names" of the pages on the desk
-    Deque<Page> buckets;
+    Vector<Page> buckets;
     // path to the pages folder
     private Path pathToPages;
 
@@ -23,7 +23,7 @@ class Table implements Serializable {
         this.size = 0L;
         this.name = name;
         this.primaryKeyName = primaryKeyName;
-        this.buckets = new ArrayDeque<Page>();
+        this.buckets = new Vector<Page>();
         this.htbColumnsNameType = (Hashtable<String, String>) columsInfos.clone();
         this.htbColumsMin = (Hashtable<String, String>) columnMin.clone();
         this.htbColumsMax = (Hashtable<String, String>) columnMax.clone();
@@ -53,7 +53,50 @@ class Table implements Serializable {
         this._saveChanges();
     }
 
-    public void insert(Hashtable<Object, Object> arg) {
+    public void insert(Hashtable<String, Object> colNameValue) {
+        Tuple t = new Tuple(this.primaryKeyName, colNameValue);
+        if (buckets.size() != 0) {
+            int z = 0;
+            int max = buckets.size();
+            int min = 0;
+
+            // TODO search with min/max
+            while (max >= min) {
+                int i = max + min / 2;
+                Page p = buckets.get(i);
+                p.load();
+                if (p.data.firstElement().compareTo(t) <= 0) {
+                    min = i + 1;
+                    z = i;
+                } else {
+                    max = i - 1;
+                }
+                p.free();
+            }
+
+            while ((!(t==null)) && z != buckets.size()) {
+                Page p = buckets.get(z);
+                p.load();
+                try {
+                    t = p.insert(t);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                p.saveAndFree();
+                z++;
+            }
+        }
+
+        if (!(t==null)) {
+            Page p = new Page(pathToPages);
+            try {
+                p.insert(t);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            p.saveAndFree();
+            buckets.add(buckets.size(), p);
+        }
     }
 
     public void update(Hashtable<Object, Object> arg) {
