@@ -76,7 +76,7 @@ class Table implements Serializable {
                 p.free();
             }
 
-            while ((!(t.equals(null))) && z != buckets.size()) {
+            while ((!(t==null)) && z != buckets.size()) {
                 Page p = buckets.get(z);
                 p.load();
                 try {
@@ -89,7 +89,7 @@ class Table implements Serializable {
             }
         }
 
-        if (!t.equals(null)) {
+        if (!t==null) {
             Page p = new Page(pathToPages);
             try {
                 p.insert(t);
