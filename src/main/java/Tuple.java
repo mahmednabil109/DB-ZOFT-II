@@ -1,24 +1,22 @@
 import java.util.*;
 
-class Tuple implements Comparable<Tuple>{
-    
+class Tuple implements Comparable<Tuple> {
+
     // the name of the primaryKey to compare based on it
     String primaryKeyName;
     // list of obects to store data of the row
     Hashtable<String, Object> data;
 
-
-    public Tuple(String primaryKeyName, Hashtable<String, Object> rowData ){
+    public Tuple(String primaryKeyName, Hashtable<String, Object> rowData) {
         this.primaryKeyName = primaryKeyName;
         this.data = (Hashtable<String, Object>) rowData.clone();
     }
 
-
-    Object getPrimeKey(){
+    Object getPrimeKey() {
         return this.get(this.primaryKeyName);
     }
 
-    Object get (String columnName){
+    Object get(String columnName) {
         return data.get(columnName);
     }
 
@@ -31,9 +29,9 @@ class Tuple implements Comparable<Tuple>{
 
     // TODO override this with something useful
     @Override
-    public String toString(){
+    public String toString() {
         Object pk = this.getPrimeKey();
-        Class cl  = pk.getClass();
+        Class cl = pk.getClass();
         return cl.cast(pk).toString();
     }
 }

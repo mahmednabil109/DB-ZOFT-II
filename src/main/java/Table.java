@@ -3,8 +3,6 @@ import java.net.*;
 import java.nio.file.*;
 import java.util.*;
 
-import javax.management.ObjectInstance;
-
 class Table implements Serializable {
 
     // name of the table "relation"
@@ -61,18 +59,15 @@ class Table implements Serializable {
     public void update(Hashtable<Object, Object> arg) {
     }
 
-    public void delete(Hashtable<String, Object> columnNameVlaue) {
+    public void delete(Hashtable<String, Object> columnNameVlaue) throws DBAppException {
         // if there are no records do nothing
-        if(size == 0 || buckets.size() == 0)
+        if (size == 0 || buckets.size() == 0)
             return;
 
         // if there are no restrictions
-        if(columnNameVlaue.size() == 0){
-            for(Page page : buckets){
-                File file = new File(Paths.get(pathToPages.toString(), page.getPageName()).toString());
-                // TODO maybe throw error
-                if(!file.delete())
-                    System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
+        if (columnNameVlaue.size() == 0) {
+            for (Page page : buckets) {
+                this._delete(page);
             }
             this.buckets.clear();
             return;
@@ -81,51 +76,63 @@ class Table implements Serializable {
         // first we call _searchRows to get the needed rows to be deleted
         Hashtable<Page, Vector<Integer>> rows = _searchRows(columnNameVlaue);
         // if there are no rows that satsifiy the conditions return
-        if(rows == null) return;
+        if (rows == null)
+            return;
+
         // delete the records from the pages
-        for(Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()){
-            for(Integer i : entries.getValue())
-                entries.getKey().data.remove(i.intValue());
-            // TODO rethink about freeing the pages
-            entries.getKey().saveAndFree();
+        for (Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()) {
+            Page page = entries.getKey();
+            for (Integer i : entries.getValue()) {
+                page.data.remove(i.intValue());
+                this.size--;
+            }
+
+            // if the page holds no value then delete it
+            if (page.data.size() == 0) {
+                // remove the pointer of it from the bucket
+                buckets.remove(page);
+                // and remove it from the disk
+                this._delete(page);
+            } else {
+                // unload the pages from the main memory and save it to the disk
+                page.saveAndFree();
+            }
         }
-        // TODO then we need to handle the after delete actions
-        // like delete the empty page 
-        // or maybe shift all the rows to minmize the disk usages
     }
 
     // gets the rows by matching all the columnNameValues
     private Hashtable<Page, Vector<Integer>> _searchRows(Hashtable<String, Object> columnNameVlaue) {
-        
+
         Hashtable<Page, Vector<Integer>> result = new Hashtable<Page, Vector<Integer>>();
-        String [] entries = (String []) columnNameVlaue.keySet().toArray();
-       
+        String[] entries = (String[]) columnNameVlaue.keySet().toArray();
+
         // getting the needed pages to work with
         for (Page page : buckets) {
             page.load();
             boolean free = true;
-            for(int i=0; i<page.data.size(); i++){
-                if(page.data.get(i).get(entries[0]).equals(columnNameVlaue.get(entries[0]))){
-                    if(!result.containsKey(page)){
+            for (int i = 0; i < page.data.size(); i++) {
+                if (page.data.get(i).get(entries[0]).equals(columnNameVlaue.get(entries[0]))) {
+                    if (!result.containsKey(page)) {
                         free = false;
                         result.put(page, new Vector<Integer>());
                     }
                     result.get(page).add(i);
                 }
             }
-            if(free) page.free();
+            if (free)
+                page.free();
 
         }
 
         // perform the `and` on the resutl of the columnValue
-        for(String entry : entries){
+        for (String entry : entries) {
             Hashtable<Page, Vector<Integer>> tmp = new Hashtable<Page, Vector<Integer>>();
-            for(Map.Entry<Page, Vector<Integer>> items : result.entrySet()){
+            for (Map.Entry<Page, Vector<Integer>> items : result.entrySet()) {
                 Page page = items.getKey();
                 Vector<Integer> indexes = items.getValue();
-                for(Integer i : indexes){
-                    if(page.data.get(i).get(entry).equals(columnNameVlaue.get(entry))){
-                        if(!tmp.containsKey(page)){
+                for (Integer i : indexes) {
+                    if (page.data.get(i).get(entry).equals(columnNameVlaue.get(entry))) {
+                        if (!tmp.containsKey(page)) {
                             tmp.put(page, new Vector<Integer>());
                         }
                         tmp.get(page).add(i);
@@ -134,8 +141,17 @@ class Table implements Serializable {
             }
             result = tmp;
         }
-        if(result.size() == 0) return null;
+        if (result.size() == 0)
+            return null;
         return result;
+    }
+
+    private void _delete(Page page) throws DBAppException {
+        File file = new File(Paths.get(pathToPages.toString(), page.getPageName()).toString());
+        if (!file.delete()){
+            System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
+            throw new DBAppException();
+        }
     }
 
     private void _defragment() {

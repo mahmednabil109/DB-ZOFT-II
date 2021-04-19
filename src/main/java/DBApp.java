@@ -89,6 +89,11 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void deleteFromTable(String tableName, Hashtable<String, Object> columnNameValue) throws DBAppException {
+        Table table = this._getTable(tableName);
+        if(table == null){
+            System.out.printf("[ERROR] something habbens when openning table %s", tableName);
+            throw new DBAppException();
+        }
         this._getTable(tableName).delete(columnNameValue);
     }
 
