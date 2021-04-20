@@ -16,11 +16,19 @@ class Table implements Serializable {
     // path to the pages folder
     private Path pathToPages;
 
+    // hold the space utlization
+    private double spaceUtlize;
+
+    // threshold utlization
+    private final double thresholdUtliz = 0.75;
+
+
     public Table(String name, String primaryKeyName, Hashtable<String, String> columsInfos,
             Hashtable<String, String> columnMin, Hashtable<String, String> columnMax) throws DBAppException {
 
         // initalize the table
         this.size = 0L;
+        this.spaceUtlize = 0.0;
         this.name = name;
         this.primaryKeyName = primaryKeyName;
         this.buckets = new Vector<Page>();
@@ -54,49 +62,39 @@ class Table implements Serializable {
     }
 
     public void insert(Hashtable<String, Object> colNameValue) {
-        Tuple t = new Tuple(this.primaryKeyName, colNameValue);
+
+        Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
+
         if (buckets.size() != 0) {
-            int z = 0;
-            int max = buckets.size();
-            int min = 0;
 
-            // TODO search with min/max
-            while (max >= min) {
-                int i = max + min / 2;
-                Page p = buckets.get(i);
-                p.load();
-                if (p.data.firstElement().compareTo(t) <= 0) {
-                    min = i + 1;
-                    z = i;
-                } else {
-                    max = i - 1;
-                }
-                p.free();
-            }
+            int index = _searchPages(tuple);
 
-            while ((!(t==null)) && z != buckets.size()) {
-                Page p = buckets.get(z);
-                p.load();
+            while ((!(tuple == null)) && index != buckets.size()) {
+                Page page = buckets.get(index);
+                page.load();
                 try {
-                    t = p.insert(t);
-                } catch (Exception e) {
+                    tuple = page.insert(tuple);
+                } catch (DBAppException e) {
                     e.printStackTrace();
+                    System.out.println("[ERROR] a tuple with the PK already exists !");
                 }
-                p.saveAndFree();
-                z++;
+                page.saveAndFree();
+                index++;
             }
         }
 
-        if (!(t==null)) {
-            Page p = new Page(pathToPages);
+        if (!(tuple == null)) {
+            Page page = new Page(pathToPages);
             try {
-                p.insert(t);
+                page.insert(tuple);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            p.saveAndFree();
-            buckets.add(buckets.size(), p);
+            page.saveAndFree();
+            buckets.add(buckets.size(), page);
         }
+        this.size ++;
+        this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
     }
 
     public void update(Hashtable<Object, Object> arg) {
@@ -141,6 +139,10 @@ class Table implements Serializable {
                 page.saveAndFree();
             }
         }
+
+        this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
+        if(this.spaceUtlize < this.thresholdUtliz)
+            this._defragment();
     }
 
     // gets the rows by matching all the columnNameValues
@@ -168,19 +170,25 @@ class Table implements Serializable {
         }
 
         // perform the `and` on the resutl of the columnValue
-        for (String entry : entries) {
+        for (int j=1; j < entries.length; j++) {
+            String entry = entries[j];
             Hashtable<Page, Vector<Integer>> tmp = new Hashtable<Page, Vector<Integer>>();
             for (Map.Entry<Page, Vector<Integer>> items : result.entrySet()) {
                 Page page = items.getKey();
                 Vector<Integer> indexes = items.getValue();
+                boolean free = true;
                 for (Integer i : indexes) {
                     if (page.data.get(i).get(entry).equals(columnNameVlaue.get(entry))) {
                         if (!tmp.containsKey(page)) {
+                            free = false;
                             tmp.put(page, new Vector<Integer>());
                         }
                         tmp.get(page).add(i);
                     }
                 }
+
+                if(free)
+                    page.free();
             }
             result = tmp;
         }
@@ -189,17 +197,67 @@ class Table implements Serializable {
         return result;
     }
 
+    // BS to get the needed page to insert or update into
+    private int _searchPages(Tuple tuple) {
+        int index = 0;
+        int max = buckets.size();
+        int min = 0;
+
+        while (max >= min) {
+            int i = max + min / 2;
+            Page page = buckets.get(i);
+            if (((Comparable) page.min).compareTo(tuple.getPrimeKey()) <= 0) {
+                min = i + 1;
+                index = i;
+            } else {
+                max = i - 1;
+            }
+        }
+
+        return index;
+    }
+
     private void _delete(Page page) throws DBAppException {
         File file = new File(Paths.get(pathToPages.toString(), page.getPageName()).toString());
-        if (!file.delete()){
+        if (!file.delete()) {
             System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
             throw new DBAppException();
         }
     }
 
-    private void _defragment() {
+    private void _defragment() throws DBAppException{
+        
+        // god only know why 
+        if(this.buckets.size() < 3) return;
 
+        // handle the defragmentation
+        for(int i=0; i<buckets.size()-1; i++){
+            Page page = buckets.get(i);
+            Page nxtPage = buckets.get(i+1);
+            if(page.size() == DBApp.maxPerPage)
+                continue;
+            page.load();
+            while(page.size() < DBApp.maxPerPage && nxtPage.size() == 0){
+                page.add(nxtPage.remove(0));
+            }
+
+            if(nxtPage.size() == 0){
+                this._delete(nxtPage);
+                this.buckets.remove(i+1);
+            }
+
+            if(page.size() != DBApp.maxPerPage)
+                i--;
+            else
+                page.saveAndFree();
+            
+        }
+
+        // save the last page
+        buckets.lastElement().saveAndFree();
+        
     }
+
 
     // this method is to locate the location of a given
 

@@ -99,7 +99,7 @@ public class DBApp implements DBAppInterface {
             System.out.printf("[ERROR] something habbens when openning table %s", tableName);
             throw new DBAppException();
         }
-        this._getTable(tableName).delete(columnNameValue);
+        table.delete(columnNameValue);
     }
 
     @Override
