@@ -22,7 +22,7 @@ class Page implements Serializable {
         // init the min, max, size
         min = max = null;
         size = 0;
-        // each page would have a unique name which is the hash of the object points to
+        // each page would have a unique name which is the hash of the object that points to
         this.pageName = this.toString();
         this.pagePath = pagePath.toString();
         this.data = new Vector<Tuple>();
@@ -48,12 +48,10 @@ class Page implements Serializable {
 
         data.add(index, tuple);
 
-        this.size = data.size();
-        this.min = data.firstElement().get(data.firstElement().primaryKeyName);
-        this.max = data.lastElement().get(data.lastElement().primaryKeyName);
+        this._updateCachedValues();
 
         if (data.size() == DBApp.maxPerPage + 1) {
-            this.size --;
+            this.size--;
             return data.remove(data.size() - 1);
         }
         return null;
@@ -63,14 +61,15 @@ class Page implements Serializable {
         return this.pageName;
     }
 
-    public void add(Tuple tuple){
-        this.size ++;
+    public void add(Tuple tuple) {
         this.data.add(tuple);
+        this._updateCachedValues();
     }
 
-    public Tuple remove(int index){
-        this.size --;
-        return this.data.remove(index);
+    public Tuple remove(int index) {
+        Tuple tuple = this.data.remove(index);
+        this._updateCachedValues();
+        return tuple;
     }
 
     public void free() {
@@ -93,9 +92,15 @@ class Page implements Serializable {
         return size;
     }
 
-
     public void load() {
         this._deserialize();
+    }
+
+    private void _updateCachedValues() {
+        // update the size, min, max to avoid loading the pages every time
+        this.size = data.size();
+        this.min = data.firstElement().get(data.firstElement().primaryKeyName);
+        this.max = data.lastElement().get(data.lastElement().primaryKeyName);
     }
 
     private void _serialize() {

@@ -1,16 +1,22 @@
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 class Table implements Serializable {
 
+    // finalls
+    static final String DateFormate = "yyyy-MM-dd";
     // name of the table "relation"
     String name, primaryKeyName;
     // number of records to alse calculate the number of pages stored
     Long size;
+    // number of columns in the table
+    int numberOfColumns;
     // hashtabel to store the columns names and types
-    Hashtable<String, String> htbColumnsNameType, htbColumsMin, htbColumsMax;
+    Hashtable<String, String> htbColumnsNameType, htbColumnsMin, htbColumnsMax;
     // dll that holds the references "names" of the pages on the desk
     Vector<Page> buckets;
     // path to the pages folder
@@ -22,8 +28,7 @@ class Table implements Serializable {
     // threshold utlization
     private final double thresholdUtliz = 0.75;
 
-
-    public Table(String name, String primaryKeyName, Hashtable<String, String> columsInfos,
+    public Table(String name, String primaryKeyName, Hashtable<String, String> columnsInfos,
             Hashtable<String, String> columnMin, Hashtable<String, String> columnMax) throws DBAppException {
 
         // initalize the table
@@ -32,9 +37,10 @@ class Table implements Serializable {
         this.name = name;
         this.primaryKeyName = primaryKeyName;
         this.buckets = new Vector<Page>();
-        this.htbColumnsNameType = (Hashtable<String, String>) columsInfos.clone();
-        this.htbColumsMin = (Hashtable<String, String>) columnMin.clone();
-        this.htbColumsMax = (Hashtable<String, String>) columnMax.clone();
+        this.numberOfColumns = columnsInfos.size();
+        this.htbColumnsNameType = (Hashtable<String, String>) columnsInfos.clone();
+        this.htbColumnsMin = (Hashtable<String, String>) columnMin.clone();
+        this.htbColumnsMax = (Hashtable<String, String>) columnMax.clone();
 
         // initalize the Folder for the pages
         try {
@@ -57,11 +63,15 @@ class Table implements Serializable {
             }
         }
 
+        // TODO write this info to the csv also
+
         // save the table object to the disk
         this._saveChanges();
     }
 
-    public void insert(Hashtable<String, Object> colNameValue) {
+    public void insert(Hashtable<String, Object> colNameValue) throws DBAppException {
+
+        this._validate(colNameValue, false);
 
         Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
 
@@ -76,7 +86,8 @@ class Table implements Serializable {
                     tuple = page.insert(tuple);
                 } catch (DBAppException e) {
                     e.printStackTrace();
-                    System.out.println("[ERROR] a tuple with the PK already exists !");
+                    System.out.printf("[ERROR] a tuple with that PK %s already exists !",
+                            tuple.getPrimeKey().toString());
                 }
                 page.saveAndFree();
                 index++;
@@ -93,7 +104,7 @@ class Table implements Serializable {
             page.saveAndFree();
             buckets.add(buckets.size(), page);
         }
-        this.size ++;
+        this.size++;
         this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
     }
 
@@ -123,8 +134,9 @@ class Table implements Serializable {
         // delete the records from the pages
         for (Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()) {
             Page page = entries.getKey();
+            page.load();
             for (Integer i : entries.getValue()) {
-                page.data.remove(i.intValue());
+                page.remove(i.intValue());
                 this.size--;
             }
 
@@ -140,9 +152,11 @@ class Table implements Serializable {
             }
         }
 
-        this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
-        if(this.spaceUtlize < this.thresholdUtliz)
-            this._defragment();
+        // this is optional to minimize the search speed and the space reserved
+        // this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage *
+        // 1.0);
+        // if(this.spaceUtlize < this.thresholdUtliz)
+        // this._defragment();
     }
 
     // gets the rows by matching all the columnNameValues
@@ -154,41 +168,42 @@ class Table implements Serializable {
         // getting the needed pages to work with
         for (Page page : buckets) {
             page.load();
-            boolean free = true;
+            // boolean free = true;
             for (int i = 0; i < page.data.size(); i++) {
                 if (page.data.get(i).get(entries[0]).equals(columnNameVlaue.get(entries[0]))) {
                     if (!result.containsKey(page)) {
-                        free = false;
+                        // free = false;
                         result.put(page, new Vector<Integer>());
                     }
                     result.get(page).add(i);
                 }
             }
-            if (free)
-                page.free();
+            // if (free)
+            page.free();
 
         }
 
         // perform the `and` on the resutl of the columnValue
-        for (int j=1; j < entries.length; j++) {
+        for (int j = 1; j < entries.length; j++) {
             String entry = entries[j];
             Hashtable<Page, Vector<Integer>> tmp = new Hashtable<Page, Vector<Integer>>();
             for (Map.Entry<Page, Vector<Integer>> items : result.entrySet()) {
                 Page page = items.getKey();
+                page.load();
                 Vector<Integer> indexes = items.getValue();
-                boolean free = true;
+                // boolean free = true;
                 for (Integer i : indexes) {
                     if (page.data.get(i).get(entry).equals(columnNameVlaue.get(entry))) {
                         if (!tmp.containsKey(page)) {
-                            free = false;
+                            // free = false;
                             tmp.put(page, new Vector<Integer>());
                         }
                         tmp.get(page).add(i);
                     }
                 }
 
-                if(free)
-                    page.free();
+                // if(free)
+                page.free();
             }
             result = tmp;
         }
@@ -197,7 +212,7 @@ class Table implements Serializable {
         return result;
     }
 
-    // BS to get the needed page to insert or update into
+    // BS with min&max to get the needed page to insert or update into
     private int _searchPages(Tuple tuple) {
         int index = 0;
         int max = buckets.size();
@@ -225,48 +240,127 @@ class Table implements Serializable {
         }
     }
 
-    private void _defragment() throws DBAppException{
-        
-        // god only know why 
-        if(this.buckets.size() < 3) return;
+    private void _validate(Hashtable<String, Object> colNameValue, boolean update) throws DBAppException {
+
+        // check that the PK is not null incase of the insert
+        if(!update && colNameValue.get(this.primaryKeyName) == null){
+            System.out.println("[ERROR] the PK cannot be null ");
+            throw new DBAppException();
+        }
+
+        // incase of the update check that you not updating the PK
+        if(update && colNameValue.get(this.primaryKeyName) != null){
+            System.out.println("[ERROR] the PK cannot be updated");
+            throw new DBAppException();
+        }
+
+        if (colNameValue.size() > numberOfColumns) {
+            System.out.println("[ERROR] the number of values dose not match the number of columns");
+            throw new DBAppException();
+        }
+
+        for (Map.Entry<String, Object> entries : colNameValue.entrySet()) {
+            try {
+                String key = entries.getKey();
+                Object value = entries.getValue();
+                Class c = Class.forName(this.htbColumnsNameType.get(key));
+
+                // check the type first
+                if (!c.equals(value.getClass())) {
+                    System.out.println("[ERROR] while matching the types of the input values");
+                    throw new DBAppException();
+                }
+
+                // check the constrains of the min and the max
+                String min = htbColumnsMin.get(key), max = htbColumnsMax.get(key);
+
+                // handle each type
+                if (c.equals(String.class)) {
+                    String string = (String) value;
+                    if (!(string.compareTo(min) >= 0 && string.compareTo(max) <= 0)) {
+                        System.out.println("[ERROR] the values dose not respect the min/max constrain");
+                        throw new DBAppException();
+                    }
+                } else if (c.equals(Integer.class)) {
+                    Integer integer = (Integer) value, minInt = Integer.parseInt(min), maxInt = Integer.parseInt(max);
+                    if (!(integer.compareTo(minInt) >= 0 && integer.compareTo(maxInt) <= 0)) {
+                        System.out.println("[ERROR] the values dose not respect the min/max constrain");
+                        throw new DBAppException();
+                    }
+                } else if (c.equals(Double.class)) {
+                    Double dob = (Double) value, minDob = Double.parseDouble(min), maxDob = Double.parseDouble(max);
+                    if (!(dob.compareTo(minDob) >= 0 && dob.compareTo(maxDob) <= 0)) {
+                        System.out.println("[ERROR] the values dose not respect the min/max constrain");
+                        throw new DBAppException();
+                    }
+                } else {
+                    Date date = (Date) value, minDate = this._parseDate(min), maxDate = this._parseDate(max);
+
+                    if (!(date.compareTo(minDate) >= 0 && date.compareTo(maxDate) <= 0)) {
+                        System.out.println("[ERROR] the values dose not respect the min/max constrain");
+                        throw new DBAppException();
+                    }
+
+                }
+            } catch (ClassNotFoundException e) {
+                System.out.println("[ERROR] while matching the types of the input values");
+                throw new DBAppException();
+            }
+        }
+
+    }
+
+    private Date _parseDate(String value) throws DBAppException{
+        Date result = null;
+        try {
+            result = new SimpleDateFormat(DateFormate).parse(value);
+        } catch (ParseException e) {
+            System.out.println("[ERROR] the input date is malformed");
+            throw new DBAppException();
+        }
+        return result;
+    }
+
+    private void _defragment() throws DBAppException {
+
+        // god only knows why
+        if (this.buckets.size() < 3)
+            return;
 
         // handle the defragmentation
-        for(int i=0; i<buckets.size()-1; i++){
+        for (int i = 0; i < buckets.size() - 1; i++) {
             Page page = buckets.get(i);
-            Page nxtPage = buckets.get(i+1);
-            if(page.size() == DBApp.maxPerPage)
+            Page nxtPage = buckets.get(i + 1);
+            if (page.size() == DBApp.maxPerPage)
                 continue;
             page.load();
-            while(page.size() < DBApp.maxPerPage && nxtPage.size() == 0){
+            while (page.size() < DBApp.maxPerPage && nxtPage.size() == 0) {
                 page.add(nxtPage.remove(0));
             }
 
-            if(nxtPage.size() == 0){
+            if (nxtPage.size() == 0) {
                 this._delete(nxtPage);
-                this.buckets.remove(i+1);
+                this.buckets.remove(i + 1);
             }
 
-            if(page.size() != DBApp.maxPerPage)
+            if (page.size() != DBApp.maxPerPage)
                 i--;
             else
                 page.saveAndFree();
-            
+
         }
 
         // save the last page
         buckets.lastElement().saveAndFree();
-        
+
     }
-
-
-    // this method is to locate the location of a given
 
     // this method saves serialize and saves the table object
     // whenever any changes habbens inside the object
     private void _saveChanges() {
         try {
             // serialize the object
-            Path p = Paths.get(Resources.getResourcePath(), "tables", this.toString());
+            Path p = Paths.get(Resources.getResourcePath(), "data", this.toString());
             System.out.println(p);
             FileOutputStream file = new FileOutputStream(p.toString());
             ObjectOutputStream out = new ObjectOutputStream(file);

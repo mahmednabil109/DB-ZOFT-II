@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 public class DBApp implements DBAppInterface {
 
@@ -35,7 +37,7 @@ public class DBApp implements DBAppInterface {
     public void init() {
         // check for the table directory
         try{
-            pathToRelations = Paths.get(Resources.getResourcePath(), "tables");
+            pathToRelations = Paths.get(Resources.getResourcePath(), "data");
             if(!Files.exists(pathToRelations)){
                 Files.createDirectories(pathToRelations);
             }
@@ -151,7 +153,41 @@ public class DBApp implements DBAppInterface {
 
         // DBApp p = new DBApp();
         // System.out.printf("[DONE] %d \n", DBApp.maxPerPage);
-        System.out.println(DBApp.class.getResource(""));
+        // System.out.println(DBApp.class.getResource(""));
+        // Integer i = new Integer(10);
+        // Class c;
+        // try {
+        //     c = Class.forName("java.lang.Integer");
+        //     System.out.println(c.equals(i.getClass()));
+        //     System.out.println(c);
+        //     System.out.println(i.getClass());
+        // } catch (ClassNotFoundException e) {
+        //     e.printStackTrace();
+        //     System.out.println("Class Not Found Execption");
+        // }
+        // Date da = new Date();
+        // Integer i = new Integer(1);
+        // Double d = new Double(1);
+        // String s = new String("s");
+
+        // System.out.println(da.getClass());
+        // System.out.println(i.getClass());
+        // System.out.println(d.getClass());
+        // System.out.println(s.getClass());
+        // System.out.println(Date.class);
+        
+        // String date =  "2000-11-23";
+        // try {
+        //     Date da = new SimpleDateFormat("yyyy-MM-dd").parse(date);
+        //     System.out.println(da);
+        //     System.out.println(da.getDay());
+        //     System.out.println(da.getYear());
+        // } catch (ParseException e) {
+        //     e.printStackTrace();
+        // }
+
+      
+       
     }
 
 }
