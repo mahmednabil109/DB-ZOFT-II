@@ -1,6 +1,7 @@
+import java.io.Serializable;
 import java.util.*;
 
-class Tuple implements Comparable<Tuple> {
+class Tuple implements Comparable<Tuple>, Serializable {
 
     // the name of the primaryKey to compare based on it
     String primaryKeyName;
@@ -18,6 +19,10 @@ class Tuple implements Comparable<Tuple> {
 
     Object get(String columnName) {
         return data.get(columnName);
+    }
+
+    void put(String columnName, Object columnValue){
+        data.put(columnName, columnValue);
     }
 
     @Override

@@ -18,47 +18,103 @@ class Page implements Serializable {
     // this holds the real data in the DB
     transient Vector<Tuple> data;
 
-    public Page(Path PagePath) {
+    public Page(String pagePath) {
         // init the min, max, size
         min = max = null;
         size = 0;
-        // each page would have a unique name which is the hash of the object that points to
+        // each page would have a unique name which is the hash of the object that
+        // points to
         this.pageName = this.toString();
-        this.pagePath = pagePath.toString();
+        this.pagePath = pagePath;
         this.data = new Vector<Tuple>();
     }
 
-    public Tuple insert(Tuple tuple) throws DBAppException {
-
-        int max = 0;
-        int min = data.size();
+    private int _searchTuple(Tuple tuple, boolean update) {
+        int min = 0;
+        int max = data.size() - 1;
         int index = 0;
-
-        while (max >= min) {
-            int i = max + min / 2;
-            if (data.get(i).compareTo(tuple) < 0) {
-                min = i + 1;
-                index = i;
-            } else if (data.get(i).compareTo(tuple) > 0) {
-                max = i - 1;
-            } else {
-                throw new DBAppException();
+        if (update) {
+            index = -1;
+            while (max >= min) {
+                int i = max + min / 2;
+                if (data.get(i).compareTo(tuple) < 0) {
+                    min = i + 1;
+                } else if (data.get(i).compareTo(tuple) > 0) {
+                    max = i - 1;
+                } else {
+                    index = i;
+                }
+            }
+        } else {
+            while (max >= min) {
+                int i = max + min / 2;
+                if (data.get(i).compareTo(tuple) < 0) {
+                    min = i + 1;
+                } else if (data.get(i).compareTo(tuple) > 0) {
+                    max = i - 1;
+                    index = i;
+                } else {
+                    index = -1;
+                    break;
+                }
             }
         }
+        return index;
+    }
 
+    public Tuple insert(Tuple tuple, boolean next) throws DBAppException {
+        Tuple res = null;
+
+        int index = this._searchTuple(tuple, false);
+        if (index == -1) {
+            throw new DBAppException();
+        }
         data.add(index, tuple);
 
-        this._updateCachedValues();
-
         if (data.size() == DBApp.maxPerPage + 1) {
+            if (next)
+                res = data.remove(data.size() - 1);
+            else
+                res = data.remove(0);
             this.size--;
-            return data.remove(data.size() - 1);
         }
-        return null;
+
+        this._updateCachedValues();
+        
+        return res;
+    }
+
+    public Vector<Tuple> insertAndSplit(Tuple tuple)throws DBAppException {
+        
+        Tuple last = this.insert(tuple, true);
+
+        Vector<Tuple> result = new Vector<Tuple>();
+        int maxPerPage = DBApp.maxPerPage;
+        
+        while (this.data.size() != maxPerPage / 2) {
+            result.add(this.data.remove(maxPerPage / 2));
+        }
+        result.add(last);
+        this._updateCachedValues();
+        
+        return result;
+    }
+
+    public void setData(Vector<Tuple> newData) {
+        this.data = (Vector<Tuple>) newData.clone();
+        this._updateCachedValues();
     }
 
     public String getPageName() {
         return this.pageName;
+    }
+
+    public void update(Tuple pk, Hashtable<String, Object> colNameVlaue) {
+        int index = 0;
+        if ((index = this._searchTuple(pk, true)) != -1) {
+            for (Map.Entry<String, Object> entries : colNameVlaue.entrySet())
+                this.data.get(index).put(entries.getKey(), entries.getValue());
+        }
     }
 
     public void add(Tuple tuple) {
@@ -104,6 +160,7 @@ class Page implements Serializable {
     }
 
     private void _serialize() {
+        System.out.println("called");
         if (data == null)
             return;
         try {

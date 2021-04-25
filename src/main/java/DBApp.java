@@ -30,6 +30,7 @@ public class DBApp implements DBAppInterface {
     }
 
     public DBApp() {
+        tables = new Vector<Table>();
         init();
     }
 
@@ -53,7 +54,7 @@ public class DBApp implements DBAppInterface {
             Iterator itr = tablesPaths.iterator();
             while(itr.hasNext()){
                 // deserialize all the save table objects
-                FileInputStream file = new FileInputStream(pathToRelations.toString());
+                FileInputStream file = new FileInputStream(itr.next().toString());
                 ObjectInputStream in = new ObjectInputStream(file);
                 Table t = (Table) in.readObject();
                 this.tables.add(t);
@@ -91,7 +92,12 @@ public class DBApp implements DBAppInterface {
     @Override
     public void updateTable(String tableName, String clusteringKeyValue, Hashtable<String, Object> columnNameValue)
             throws DBAppException {
-
+        Table t =  this._getTable(tableName);
+        if(t == null){
+            throw new DBAppException();
+        } else{
+            t.update(clusteringKeyValue, columnNameValue);
+        }
     }
 
     @Override
@@ -187,7 +193,9 @@ public class DBApp implements DBAppInterface {
         // }
 
       
-       
+    //    Hastable<String , Object> htb = new Hashtable<String, Object>{
+    //        {"asd", new Integer(10)}
+    //    };
     }
 
 }

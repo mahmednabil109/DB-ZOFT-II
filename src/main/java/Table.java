@@ -20,7 +20,7 @@ class Table implements Serializable {
     // dll that holds the references "names" of the pages on the desk
     Vector<Page> buckets;
     // path to the pages folder
-    private Path pathToPages;
+    private String pathToPages;
 
     // hold the space utlization
     private double spaceUtlize;
@@ -44,19 +44,19 @@ class Table implements Serializable {
 
         // initalize the Folder for the pages
         try {
-            this.pathToPages = Paths.get(Resources.getResourcePath(), this.name);
+            this.pathToPages = Paths.get(Resources.getResourcePath(), this.name).toString();
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
             System.out.println("[ERROR] something wrong habben when trying to read the resources location");
         }
 
-        if (Files.exists(pathToPages)) {
+        if (Files.exists(Paths.get(pathToPages))) {
             // it throws an Error as the relation with that name aleardy Exists
             System.out.println("[ERROR] table already exists");
             throw new DBAppException();
         } else {
             try {
-                Files.createDirectories(pathToPages);
+                Files.createDirectories(Paths.get(pathToPages));
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("[ERROR] something wrong habben when trying to make the directory for the pages");
@@ -74,41 +74,113 @@ class Table implements Serializable {
         this._validate(colNameValue, false);
 
         Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
+        int pageIndex = this._searchPages(tuple);
 
-        if (buckets.size() != 0) {
-
-            int index = _searchPages(tuple);
-
-            while ((!(tuple == null)) && index != buckets.size()) {
-                Page page = buckets.get(index);
-                page.load();
-                try {
-                    tuple = page.insert(tuple);
-                } catch (DBAppException e) {
-                    e.printStackTrace();
-                    System.out.printf("[ERROR] a tuple with that PK %s already exists !",
-                            tuple.getPrimeKey().toString());
-                }
-                page.saveAndFree();
-                index++;
-            }
-        }
-
-        if (!(tuple == null)) {
+        if (pageIndex == 0 && this.buckets.size() == 0) {
             Page page = new Page(pathToPages);
-            try {
-                page.insert(tuple);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            page.add(tuple);
             page.saveAndFree();
-            buckets.add(buckets.size(), page);
+            this.buckets.add(page);
+        } else {
+            Page page = this.buckets.get(pageIndex);
+            if (page.size() != DBApp.maxPerPage) {
+                page.load();
+                page.insert(tuple, false);
+                page.saveAndFree();
+            } else if (pageIndex != this.buckets.size() - 1 && buckets.get(pageIndex + 1).size() < DBApp.maxPerPage) {
+                Page nxtPage = buckets.get(pageIndex + 1);
+                nxtPage.load();
+                page.load();
+                // get the last tuple
+                tuple = page.insert(tuple, true);
+                nxtPage.insert(tuple, false);
+                page.saveAndFree();
+                nxtPage.saveAndFree();
+            }else if(pageIndex != 0 && buckets.get(pageIndex - 1).size() < DBApp.maxPerPage){
+                Page prevPage = buckets.get(pageIndex - 1);
+                prevPage.load();
+                page.load();
+                // get the last tuple
+                tuple = page.insert(tuple, false);
+                prevPage.insert(tuple, false);
+                page.saveAndFree();
+                prevPage.saveAndFree();
+            }else{
+                Page nxtPage = new Page(pathToPages);
+                page.load();
+                Vector<Tuple> newData = page.insertAndSplit(tuple);
+                nxtPage.setData(newData);
+                page.saveAndFree();
+                nxtPage.saveAndFree();
+                this.buckets.add(pageIndex + 1, nxtPage);
+            }
         }
+
         this.size++;
         this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
     }
 
-    public void update(Hashtable<Object, Object> arg) {
+    // BS with min&max to get the needed page to insert or update into
+    private int _searchPages(Tuple tuple) {
+        int index = 0;
+        int max = buckets.size() - 1;
+        int min = 0;
+
+        while (max >= min) {
+            int i = max + min / 2;
+            Page page = buckets.get(i);
+            if (((Comparable) page.min).compareTo(tuple.getPrimeKey()) <= 0) {
+                min = i + 1;
+                index = i;
+            } else {
+                max = i - 1;
+            }
+        }
+
+        return index;
+    }
+
+    public void update(String clusteringKeyValue, Hashtable<String, Object> colNameValue) throws DBAppException {
+
+        this._validate(colNameValue, true);
+
+        try {
+            Object pk;
+            Class c;
+
+            c = Class.forName(this.htbColumnsNameType.get(this.primaryKeyName));
+
+            // handle each type
+            if (c.equals(String.class)) {
+                pk = (String) clusteringKeyValue;
+
+            } else if (c.equals(Integer.class)) {
+                pk = Integer.parseInt(clusteringKeyValue);
+
+            } else if (c.equals(Double.class)) {
+                pk = Double.parseDouble(clusteringKeyValue);
+
+            } else {
+                pk = this._parseDate(clusteringKeyValue);
+            }
+
+            Hashtable<String, Object> htb = new Hashtable<>();
+            htb.put(this.primaryKeyName, pk);
+            Tuple tuple = new Tuple(this.primaryKeyName, htb);
+
+            if (((Comparable) buckets.lastElement().max).compareTo(pk) < 0
+                    || ((Comparable) buckets.firstElement().min).compareTo(pk) > 0)
+                return;
+            int i = this._searchPages(tuple);
+            Page page = this.buckets.get(i);
+            page.load();
+            page.update(tuple, colNameValue);
+            page.saveAndFree();
+
+        } catch (ClassNotFoundException e) {
+            throw new DBAppException();
+        }
+
     }
 
     public void delete(Hashtable<String, Object> columnNameVlaue) throws DBAppException {
@@ -212,28 +284,8 @@ class Table implements Serializable {
         return result;
     }
 
-    // BS with min&max to get the needed page to insert or update into
-    private int _searchPages(Tuple tuple) {
-        int index = 0;
-        int max = buckets.size();
-        int min = 0;
-
-        while (max >= min) {
-            int i = max + min / 2;
-            Page page = buckets.get(i);
-            if (((Comparable) page.min).compareTo(tuple.getPrimeKey()) <= 0) {
-                min = i + 1;
-                index = i;
-            } else {
-                max = i - 1;
-            }
-        }
-
-        return index;
-    }
-
     private void _delete(Page page) throws DBAppException {
-        File file = new File(Paths.get(pathToPages.toString(), page.getPageName()).toString());
+        File file = new File(Paths.get(pathToPages, page.getPageName()).toString());
         if (!file.delete()) {
             System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
             throw new DBAppException();
@@ -243,13 +295,13 @@ class Table implements Serializable {
     private void _validate(Hashtable<String, Object> colNameValue, boolean update) throws DBAppException {
 
         // check that the PK is not null incase of the insert
-        if(!update && colNameValue.get(this.primaryKeyName) == null){
+        if (!update && colNameValue.get(this.primaryKeyName) == null) {
             System.out.println("[ERROR] the PK cannot be null ");
             throw new DBAppException();
         }
 
         // incase of the update check that you not updating the PK
-        if(update && colNameValue.get(this.primaryKeyName) != null){
+        if (update && colNameValue.get(this.primaryKeyName) != null) {
             System.out.println("[ERROR] the PK cannot be updated");
             throw new DBAppException();
         }
@@ -257,6 +309,15 @@ class Table implements Serializable {
         if (colNameValue.size() > numberOfColumns) {
             System.out.println("[ERROR] the number of values dose not match the number of columns");
             throw new DBAppException();
+        }
+
+        // check that the column names are valid
+        Set<String> validColNames = this.htbColumnsNameType.keySet();
+        for (Object s : colNameValue.keySet().toArray()) {
+            if (!validColNames.contains(s)) {
+                System.out.println("[ERROR] the number of values dose not match the number of columns");
+                throw new DBAppException();
+            }
         }
 
         for (Map.Entry<String, Object> entries : colNameValue.entrySet()) {
@@ -278,7 +339,9 @@ class Table implements Serializable {
                 if (c.equals(String.class)) {
                     String string = (String) value;
                     if (!(string.compareTo(min) >= 0 && string.compareTo(max) <= 0)) {
-                        System.out.println("[ERROR] the values dose not respect the min/max constrain");
+                        System.out.printf("%s %s \n", this.htbColumnsNameType.get(key), key);
+                        System.out.printf("[ERROR] the values dose not respect the min/max constrain [%s | %s] -> %s",
+                                min, max, string);
                         throw new DBAppException();
                     }
                 } else if (c.equals(Integer.class)) {
@@ -300,7 +363,6 @@ class Table implements Serializable {
                         System.out.println("[ERROR] the values dose not respect the min/max constrain");
                         throw new DBAppException();
                     }
-
                 }
             } catch (ClassNotFoundException e) {
                 System.out.println("[ERROR] while matching the types of the input values");
@@ -310,7 +372,7 @@ class Table implements Serializable {
 
     }
 
-    private Date _parseDate(String value) throws DBAppException{
+    private Date _parseDate(String value) throws DBAppException {
         Date result = null;
         try {
             result = new SimpleDateFormat(DateFormate).parse(value);
@@ -368,5 +430,23 @@ class Table implements Serializable {
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void main(String args[]) throws Exception {
+        // Hashtable<String, String> htb = new Hashtable<>();
+        // Table t = new Table("asd", null, htb, htb, htb);
+
+        // String path = Resources.getResourcePath() + "ads";
+        // FileOutputStream file = new FileOutputStream(path);
+        // ObjectOutputStream out = new ObjectOutputStream(file);
+        // out.writeObject(t);
+
+        // FileInputStream fi = new FileInputStream(path);
+        // ObjectInputStream in = new ObjectInputStream(fi);
+
+        // Table t2 = (Table) in.readObject();
+        // System.out.println(t2.name);
+        System.out.println("610".compareTo("2100"));
+
     }
 }
