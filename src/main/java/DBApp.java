@@ -31,18 +31,17 @@ public class DBApp implements DBAppInterface {
 
     public DBApp() {
         tables = new Vector<Table>();
-        init();
     }
 
     @Override
     public void init() {
         // check for the table directory
-        try{
+        try {
             pathToRelations = Paths.get(Resources.getResourcePath(), "data");
-            if(!Files.exists(pathToRelations)){
+            if (!Files.exists(pathToRelations)) {
                 Files.createDirectories(pathToRelations);
             }
-        }catch(IOException | URISyntaxException e){
+        } catch (IOException | URISyntaxException e) {
             System.out.println("[ERROR] someting habbens when checking for the tables directory");
             e.printStackTrace();
         }
@@ -52,7 +51,7 @@ public class DBApp implements DBAppInterface {
         try {
             Stream<Path> tablesPaths = Files.walk(pathToRelations).filter(Files::isRegularFile);
             Iterator itr = tablesPaths.iterator();
-            while(itr.hasNext()){
+            while (itr.hasNext()) {
                 // deserialize all the save table objects
                 FileInputStream file = new FileInputStream(itr.next().toString());
                 ObjectInputStream in = new ObjectInputStream(file);
@@ -81,6 +80,7 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void insertIntoTable(String tableName, Hashtable<String, Object> colNameValue) throws DBAppException {
+        
         Table t = this._getTable(tableName);
         if (t == null) {
             throw new DBAppException();
@@ -92,10 +92,12 @@ public class DBApp implements DBAppInterface {
     @Override
     public void updateTable(String tableName, String clusteringKeyValue, Hashtable<String, Object> columnNameValue)
             throws DBAppException {
-        Table t =  this._getTable(tableName);
-        if(t == null){
+        Table t = this._getTable(tableName);
+        if (t == null) {
             throw new DBAppException();
-        } else{
+        } else {
+            // System.out.printf("[LOG] this is the %s table %s and it has %d pages %s\n", t.name, t.toString(),
+            //         t.buckets.size(), t.buckets.toString());
             t.update(clusteringKeyValue, columnNameValue);
         }
     }
@@ -103,7 +105,7 @@ public class DBApp implements DBAppInterface {
     @Override
     public void deleteFromTable(String tableName, Hashtable<String, Object> columnNameValue) throws DBAppException {
         Table table = this._getTable(tableName);
-        if(table == null){
+        if (table == null) {
             System.out.printf("[ERROR] something habbens when openning table %s", tableName);
             throw new DBAppException();
         }
@@ -115,10 +117,23 @@ public class DBApp implements DBAppInterface {
         return null;
     }
 
-    private Table _getTable(String tableName) {
-        for (Table t : tables)
-            if (t.name.equals(tableName))
+    // FOR [DEBUGING]
+    // public void printAllSizes() {
+    //     System.out.printf("[NUM] of tables is %d\n", this.tables.size());
+    //     for (Table t : this.tables)
+    //         System.out.printf("%s %s %s\n", t.name, t.toString(), t.buckets.toString());
+    // }
+
+    // TODO convert to private
+    public Table _getTable(String tableName) {
+        for (Table t : tables){
+            if (t.name.equals(tableName)) {
+                // System.out.printf("[LOG] this is the %s table %s and it has %d pages %s\n", t.name, t.toString(),
+                //         t.buckets.size(), t.buckets.toString());
+
                 return t;
+            }
+        }
         return null;
     }
 
@@ -149,9 +164,9 @@ public class DBApp implements DBAppInterface {
         // int data[] = new int[]{10,102,45,123,5123,12};
         // Vector<Tuple> page = new Vector<Tuple>();
         // for(int d : data){
-        //     Hashtable<String, Object> htb = new Hashtable<String, Object>();
-        //     htb.put("id", d);
-        //     page.add(new Tuple("id", htb));
+        // Hashtable<String, Object> htb = new Hashtable<String, Object>();
+        // htb.put("id", d);
+        // page.add(new Tuple("id", htb));
         // }
         // System.out.println(page);
         // Collections.sort(page);
@@ -163,13 +178,13 @@ public class DBApp implements DBAppInterface {
         // Integer i = new Integer(10);
         // Class c;
         // try {
-        //     c = Class.forName("java.lang.Integer");
-        //     System.out.println(c.equals(i.getClass()));
-        //     System.out.println(c);
-        //     System.out.println(i.getClass());
+        // c = Class.forName("java.lang.Integer");
+        // System.out.println(c.equals(i.getClass()));
+        // System.out.println(c);
+        // System.out.println(i.getClass());
         // } catch (ClassNotFoundException e) {
-        //     e.printStackTrace();
-        //     System.out.println("Class Not Found Execption");
+        // e.printStackTrace();
+        // System.out.println("Class Not Found Execption");
         // }
         // Date da = new Date();
         // Integer i = new Integer(1);
@@ -181,21 +196,20 @@ public class DBApp implements DBAppInterface {
         // System.out.println(d.getClass());
         // System.out.println(s.getClass());
         // System.out.println(Date.class);
-        
-        // String date =  "2000-11-23";
+
+        // String date = "2000-11-23";
         // try {
-        //     Date da = new SimpleDateFormat("yyyy-MM-dd").parse(date);
-        //     System.out.println(da);
-        //     System.out.println(da.getDay());
-        //     System.out.println(da.getYear());
+        // Date da = new SimpleDateFormat("yyyy-MM-dd").parse(date);
+        // System.out.println(da);
+        // System.out.println(da.getDay());
+        // System.out.println(da.getYear());
         // } catch (ParseException e) {
-        //     e.printStackTrace();
+        // e.printStackTrace();
         // }
 
-      
-    //    Hastable<String , Object> htb = new Hashtable<String, Object>{
-    //        {"asd", new Integer(10)}
-    //    };
+        // Hastable<String , Object> htb = new Hashtable<String, Object>{
+        // {"asd", new Integer(10)}
+        // };
     }
 
 }

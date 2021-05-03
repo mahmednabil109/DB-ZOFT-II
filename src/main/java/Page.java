@@ -32,43 +32,44 @@ class Page implements Serializable {
     private int _searchTuple(Tuple tuple, boolean update) {
         int min = 0;
         int max = data.size() - 1;
-        int index = 0;
+
         if (update) {
-            index = -1;
-            while (max >= min) {
-                int i = max + min / 2;
-                if (data.get(i).compareTo(tuple) < 0) {
-                    min = i + 1;
-                } else if (data.get(i).compareTo(tuple) > 0) {
-                    max = i - 1;
+            // implementation of the lower_bound
+            while (max > min) {
+                int i = min + (max - min) / 2;
+                Tuple t = data.get(i);
+                if (t.compareTo(tuple) >= 0) {
+                    max = i ;
                 } else {
-                    index = i;
+                    min = i + 1;
                 }
             }
         } else {
-            while (max >= min) {
-                int i = max + min / 2;
-                if (data.get(i).compareTo(tuple) < 0) {
+            // implemenation of the upper_bound
+            while (max > min) {
+                int i = min + (max - min) / 2;
+                Tuple t = data.get(i);
+                // System.out.printf("(%d, %d) , %s <=> [%s] %d\n", min, max, t.toString(), tuple.toString(), t.compareTo(tuple));
+                if (t.compareTo(tuple) <= 0) {
                     min = i + 1;
-                } else if (data.get(i).compareTo(tuple) > 0) {
-                    max = i - 1;
-                    index = i;
                 } else {
-                    index = -1;
-                    break;
+                    max = i;
                 }
             }
+            // System.out.println(min);
+            if(data.lastElement().compareTo(tuple) < 0){
+                min ++;
+                // System.out.println("[in] " + min);
+            }
         }
-        return index;
+        return min;
     }
 
     public Tuple insert(Tuple tuple, boolean next) throws DBAppException {
         Tuple res = null;
 
         int index = this._searchTuple(tuple, false);
-        if (index == -1) {
-            throw new DBAppException();
-        }
+        
         data.add(index, tuple);
 
         if (data.size() == DBApp.maxPerPage + 1) {
@@ -80,7 +81,14 @@ class Page implements Serializable {
         }
 
         this._updateCachedValues();
-        
+
+        // ![DEBUG]
+        // System.out.printf("inserted %s at index %d\n", tuple.toString(), index);
+        // System.out.println("=====================");
+        // for(Tuple t : data)
+        //     System.out.printf("inserted %s\n", t.toString());
+        // System.out.println("=====================");
+
         return res;
     }
 
@@ -110,10 +118,14 @@ class Page implements Serializable {
     }
 
     public void update(Tuple pk, Hashtable<String, Object> colNameVlaue) {
-        int index = 0;
-        if ((index = this._searchTuple(pk, true)) != -1) {
-            for (Map.Entry<String, Object> entries : colNameVlaue.entrySet())
-                this.data.get(index).put(entries.getKey(), entries.getValue());
+        int index = this._searchTuple(pk, true);
+        // System.out.printf("[LOG] the position is %d\n", index);
+        if (index != -1) {
+            while(pk.compareTo(this.data.get(index)) == 0 && index < this.data.size()){
+                for (Map.Entry<String, Object> entries : colNameVlaue.entrySet())
+                    this.data.get(index).put(entries.getKey(), entries.getValue());
+                index++;
+            }
         }
     }
 
@@ -128,6 +140,7 @@ class Page implements Serializable {
         return tuple;
     }
 
+    // TODO uncomment free load save
     public void free() {
         // free the memory occupied be the page in the main memory
         this.data = null;
@@ -160,7 +173,6 @@ class Page implements Serializable {
     }
 
     private void _serialize() {
-        System.out.println("called");
         if (data == null)
             return;
         try {

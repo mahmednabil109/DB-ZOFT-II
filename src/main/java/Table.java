@@ -22,6 +22,9 @@ class Table implements Serializable {
     // path to the pages folder
     private String pathToPages;
 
+    // hashcode to store the hashcode at the creatation
+    // becuase java says why not to change it
+    private String HASHCODE;
     // hold the space utlization
     private double spaceUtlize;
 
@@ -35,6 +38,7 @@ class Table implements Serializable {
         this.size = 0L;
         this.spaceUtlize = 0.0;
         this.name = name;
+        this.HASHCODE = this.toString();
         this.primaryKeyName = primaryKeyName;
         this.buckets = new Vector<Page>();
         this.numberOfColumns = columnsInfos.size();
@@ -75,6 +79,13 @@ class Table implements Serializable {
 
         Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
         int pageIndex = this._searchPages(tuple);
+        // System.out.printf("[LOG] inserting %s in page %d\n", tuple.toString(), pageIndex);
+
+        while (pageIndex < this.buckets.size() && ((Comparable) buckets.get(pageIndex).min).compareTo(tuple.get(this.primaryKeyName)) <= 0){
+            pageIndex++;
+        }
+
+        pageIndex = Math.max(0, --pageIndex);
 
         if (pageIndex == 0 && this.buckets.size() == 0) {
             Page page = new Page(pathToPages);
@@ -118,6 +129,7 @@ class Table implements Serializable {
 
         this.size++;
         this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
+        this._saveChanges();
     }
 
     // BS with min&max to get the needed page to insert or update into
@@ -127,9 +139,9 @@ class Table implements Serializable {
         int min = 0;
 
         while (max >= min) {
-            int i = max + min / 2;
+            int i = (max + min) / 2;
             Page page = buckets.get(i);
-            if (((Comparable) page.min).compareTo(tuple.getPrimeKey()) <= 0) {
+            if (((Comparable) page.min).compareTo(tuple.getPrimeKey()) < 0) {
                 min = i + 1;
                 index = i;
             } else {
@@ -167,20 +179,26 @@ class Table implements Serializable {
             Hashtable<String, Object> htb = new Hashtable<>();
             htb.put(this.primaryKeyName, pk);
             Tuple tuple = new Tuple(this.primaryKeyName, htb);
-
             if (((Comparable) buckets.lastElement().max).compareTo(pk) < 0
                     || ((Comparable) buckets.firstElement().min).compareTo(pk) > 0)
                 return;
             int i = this._searchPages(tuple);
-            Page page = this.buckets.get(i);
-            page.load();
-            page.update(tuple, colNameValue);
-            page.saveAndFree();
+           
+            while (i < this.buckets.size() && ((Comparable) buckets.get(i).min).compareTo(pk) <= 0) {
+                System.out.printf("[LOG] the Page is Found for %s an it's is the %s\n", pk, i);
+                System.out.println("[LOG] updating the page\n");
+                Page page = this.buckets.get(i);
+                page.load();
+                page.update(tuple, colNameValue);
+                page.saveAndFree();
+                i++;
+            }
+            System.out.printf("[DONE] updating the page\n");
 
         } catch (ClassNotFoundException e) {
             throw new DBAppException();
         }
-
+        this._saveChanges();
     }
 
     public void delete(Hashtable<String, Object> columnNameVlaue) throws DBAppException {
@@ -229,20 +247,33 @@ class Table implements Serializable {
         // 1.0);
         // if(this.spaceUtlize < this.thresholdUtliz)
         // this._defragment();
+        this._saveChanges();
+    }
+
+    // [DEBUG] function to print all the content of the pages
+    public void printAll(){
+        for(Page page : buckets){
+            System.out.println(page.getPageName());
+            System.out.println("===================");
+            page.load();
+            for(Tuple tuple : page.data)
+                System.out.printf("[PK] %s\n", tuple.toString());
+            page.free();
+        }
     }
 
     // gets the rows by matching all the columnNameValues
     private Hashtable<Page, Vector<Integer>> _searchRows(Hashtable<String, Object> columnNameVlaue) {
 
         Hashtable<Page, Vector<Integer>> result = new Hashtable<Page, Vector<Integer>>();
-        String[] entries = (String[]) columnNameVlaue.keySet().toArray();
+        Object[] entries = columnNameVlaue.keySet().toArray();
 
         // getting the needed pages to work with
         for (Page page : buckets) {
             page.load();
             // boolean free = true;
             for (int i = 0; i < page.data.size(); i++) {
-                if (page.data.get(i).get(entries[0]).equals(columnNameVlaue.get(entries[0]))) {
+                if (page.data.get(i).get((String) entries[0]).equals(columnNameVlaue.get(entries[0]))) {
                     if (!result.containsKey(page)) {
                         // free = false;
                         result.put(page, new Vector<Integer>());
@@ -257,7 +288,7 @@ class Table implements Serializable {
 
         // perform the `and` on the resutl of the columnValue
         for (int j = 1; j < entries.length; j++) {
-            String entry = entries[j];
+            String entry = (String) entries[j];
             Hashtable<Page, Vector<Integer>> tmp = new Hashtable<Page, Vector<Integer>>();
             for (Map.Entry<Page, Vector<Integer>> items : result.entrySet()) {
                 Page page = items.getKey();
@@ -340,8 +371,8 @@ class Table implements Serializable {
                     String string = (String) value;
                     if (!(string.compareTo(min) >= 0 && string.compareTo(max) <= 0)) {
                         System.out.printf("%s %s \n", this.htbColumnsNameType.get(key), key);
-                        System.out.printf("[ERROR] the values dose not respect the min/max constrain [%s | %s] -> %s",
-                                min, max, string);
+                        System.out.printf("[ERROR] table %s, the values dose not respect the min/max constrain [%s | %s] -> %s",
+                                this.name, min, max, string);
                         throw new DBAppException();
                     }
                 } else if (c.equals(Integer.class)) {
@@ -422,11 +453,11 @@ class Table implements Serializable {
     private void _saveChanges() {
         try {
             // serialize the object
-            Path p = Paths.get(Resources.getResourcePath(), "data", this.toString());
-            System.out.println(p);
+            Path p = Paths.get(Resources.getResourcePath(), "data", this.HASHCODE);
             FileOutputStream file = new FileOutputStream(p.toString());
             ObjectOutputStream out = new ObjectOutputStream(file);
             out.writeObject(this);
+            // System.out.printf("[IN LOG] %s %s\n", this.name, this.toString());
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
         }
