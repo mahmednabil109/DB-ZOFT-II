@@ -71,6 +71,8 @@ class Table implements Serializable {
 
         // save the table object to the disk
         this._saveChanges();
+        this._updateMetaData();
+
     }
 
     public void insert(Hashtable<String, Object> colNameValue) throws DBAppException {
@@ -94,7 +96,7 @@ class Table implements Serializable {
             this.buckets.add(page);
         } else {
             Page page = this.buckets.get(pageIndex);
-            if (page.size() != DBApp.maxPerPage) {
+            if (page.size() < DBApp.maxPerPage) {
                 page.load();
                 page.insert(tuple, false);
                 page.saveAndFree();
@@ -262,6 +264,7 @@ class Table implements Serializable {
         }
     }
 
+
     // gets the rows by matching all the columnNameValues
     private Hashtable<Page, Vector<Integer>> _searchRows(Hashtable<String, Object> columnNameVlaue) {
 
@@ -320,6 +323,8 @@ class Table implements Serializable {
         if (!file.delete()) {
             System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
             throw new DBAppException();
+        }else{
+            this.size -= page.size();
         }
     }
 
@@ -463,21 +468,41 @@ class Table implements Serializable {
         }
     }
 
-    public static void main(String args[]) throws Exception {
-        // Hashtable<String, String> htb = new Hashtable<>();
-        // Table t = new Table("asd", null, htb, htb, htb);
+    private void _updateMetaData(){
+        try {
+            Path p = Paths.get(Resources.getResourcePath(), "metadata.csv");
+            if(Files.exists(p)){
+               StringBuilder oldData = new StringBuilder(new String(Files.readAllBytes(p)));
+               StringBuilder added = new StringBuilder("");
+               for(Map.Entry<String, String> columns : this.htbColumnsNameType.entrySet()){
+                    added.append(
+                        this.name + "," + columns.getKey() + ","  + columns.getValue() + ","
+                        + columns.getKey().equals(this.primaryKeyName) + "," + "False" + ","
+                    );
 
-        // String path = Resources.getResourcePath() + "ads";
-        // FileOutputStream file = new FileOutputStream(path);
-        // ObjectOutputStream out = new ObjectOutputStream(file);
-        // out.writeObject(t);
-
-        // FileInputStream fi = new FileInputStream(path);
-        // ObjectInputStream in = new ObjectInputStream(fi);
-
-        // Table t2 = (Table) in.readObject();
-        // System.out.println(t2.name);
-        System.out.println("610".compareTo("2100"));
-
+                    if(this.htbColumnsNameType.get(columns.getKey()).equals("java.lang.String"))
+                        added.append(
+                            "\"" + this.htbColumnsMin.get(columns.getKey()) + "\",\"" + this.htbColumnsMax.get(columns.getKey()) + "\"\n"
+                        );
+                    else
+                        added.append(
+                            this.htbColumnsMin.get(columns.getKey()) + "," + this.htbColumnsMax.get(columns.getKey()) + "\n"
+                        );
+               }
+               oldData.append(added);
+               Files.write(p, oldData.toString().getBytes());
+            //    System.out.println("done updateing the metadata");
+            }else{
+                System.out.println("[ERROR] the metadata file does not exists");
+            }
+        } catch (IOException | URISyntaxException e) {
+            e.printStackTrace();
+        }
     }
+
+    public static void main(String args[]) throws Exception {
+        
+    }
+
+
 }

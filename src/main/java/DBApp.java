@@ -10,6 +10,9 @@ import java.text.SimpleDateFormat;
 
 public class DBApp implements DBAppInterface {
 
+
+    // GLOBAL OPTIONS FOR THE DB
+    public static boolean ALLOW_DUBLICATES = false;
     // vector to hold table objects
     private Vector<Table> tables;
     // path to realtions folder
@@ -141,75 +144,7 @@ public class DBApp implements DBAppInterface {
 
         // !tmp test
 
-        // Tuple t = new Tuple(1, new Integer(10), new String("Hamada"));
-        // System.out.println(t);
-        // System.out.println(t.getPrimeKey());
-        // PageInfo p = new PageInfo();
-        // System.out.println(p instanceof Serializable);
-        // System.out.println("Hello Zoft!");
-
-        // // check how to test for the types
-        // Object i = new Integer(10);
-        // Class o = i.getClass();
-        // Object j = o.cast(i);
-        // System.out.println(j.getClass());
-        // System.out.println((i.getClass().toString()).split(" ")[1]);
-
-        // test the comareto function in the Tuple calss
-        // Tuple t1 = new Tuple(1, new Integer(100), new String("athis is the first
-        // Tuple")),
-        // t2 = new Tuple(1, new Integer(100), new String("bthis is the first Tuple"));
-        // System.out.println(t1.compareTo(t2));
-
-        // int data[] = new int[]{10,102,45,123,5123,12};
-        // Vector<Tuple> page = new Vector<Tuple>();
-        // for(int d : data){
-        // Hashtable<String, Object> htb = new Hashtable<String, Object>();
-        // htb.put("id", d);
-        // page.add(new Tuple("id", htb));
-        // }
-        // System.out.println(page);
-        // Collections.sort(page);
-        // System.out.println(page);
-
-        // DBApp p = new DBApp();
-        // System.out.printf("[DONE] %d \n", DBApp.maxPerPage);
-        // System.out.println(DBApp.class.getResource(""));
-        // Integer i = new Integer(10);
-        // Class c;
-        // try {
-        // c = Class.forName("java.lang.Integer");
-        // System.out.println(c.equals(i.getClass()));
-        // System.out.println(c);
-        // System.out.println(i.getClass());
-        // } catch (ClassNotFoundException e) {
-        // e.printStackTrace();
-        // System.out.println("Class Not Found Execption");
-        // }
-        // Date da = new Date();
-        // Integer i = new Integer(1);
-        // Double d = new Double(1);
-        // String s = new String("s");
-
-        // System.out.println(da.getClass());
-        // System.out.println(i.getClass());
-        // System.out.println(d.getClass());
-        // System.out.println(s.getClass());
-        // System.out.println(Date.class);
-
-        // String date = "2000-11-23";
-        // try {
-        // Date da = new SimpleDateFormat("yyyy-MM-dd").parse(date);
-        // System.out.println(da);
-        // System.out.println(da.getDay());
-        // System.out.println(da.getYear());
-        // } catch (ParseException e) {
-        // e.printStackTrace();
-        // }
-
-        // Hastable<String , Object> htb = new Hashtable<String, Object>{
-        // {"asd", new Integer(10)}
-        // };
+        
     }
 
 }

@@ -29,7 +29,7 @@ class Page implements Serializable {
         this.data = new Vector<Tuple>();
     }
 
-    private int _searchTuple(Tuple tuple, boolean update) {
+    private int _searchTuple(Tuple tuple, boolean update) throws DBAppException {
         int min = 0;
         int max = data.size() - 1;
 
@@ -56,10 +56,20 @@ class Page implements Serializable {
                     max = i;
                 }
             }
+            
             // System.out.println(min);
             if(data.lastElement().compareTo(tuple) < 0){
                 min ++;
                 // System.out.println("[in] " + min);
+            }
+
+            if(!DBApp.ALLOW_DUBLICATES){
+                if(!(min >= data.size()) && data.get(min).equals(tuple))
+                    throw new DBAppException();
+                if(!(min == 0) && data.get(min - 1).equals(tuple))
+                    throw new DBAppException();
+                if(!(min >= data.size()-1) && data.get(min + 1).equals(tuple))
+                    throw new DBAppException();
             }
         }
         return min;
@@ -117,7 +127,7 @@ class Page implements Serializable {
         return this.pageName;
     }
 
-    public void update(Tuple pk, Hashtable<String, Object> colNameVlaue) {
+    public void update(Tuple pk, Hashtable<String, Object> colNameVlaue) throws DBAppException {
         int index = this._searchTuple(pk, true);
         // System.out.printf("[LOG] the position is %d\n", index);
         if (index != -1) {

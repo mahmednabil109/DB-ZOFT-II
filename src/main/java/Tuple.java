@@ -35,8 +35,16 @@ class Tuple implements Comparable<Tuple>, Serializable {
     // TODO override this with something useful
     @Override
     public String toString() {
-        Object pk = this.getPrimeKey();
-        Class cl = pk.getClass();
-        return cl.cast(pk).toString();
+        StringBuilder tupleString = new StringBuilder("");
+        
+        for(Map.Entry<String, Object> entries : this.data.entrySet()){
+            if(entries.getKey().equals(this.primaryKeyName))
+                tupleString.append(" [PK] " + entries.getValue().toString() + " ");
+            else
+                tupleString.append(" " + entries.getValue() + " ");        
+        }
+        tupleString.append("\n");
+
+        return tupleString.toString();
     }
 }
