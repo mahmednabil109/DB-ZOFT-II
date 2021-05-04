@@ -43,8 +43,6 @@ class Tuple implements Comparable<Tuple>, Serializable {
             else
                 tupleString.append(" " + entries.getValue() + " ");        
         }
-        tupleString.append("\n");
-
         return tupleString.toString();
     }
 }

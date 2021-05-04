@@ -1,0 +1,23 @@
+# testing the result of getting all the student with gpa == 1
+
+('50-7350', 'mrIqJb', 'WWcVDG', '1992-02-05', 1.0)
+('52-7778', 'JVkAUP', 'AncWVl', '1992-08-09', 1.0)
+('57-1585', 'traqew', 'wjbTaC', '2000-10-09', 1.0)
+('59-9409', 'XYYrNb', 'PhKkbl', '1998-07-18', 1.0)
+('74-6959', 'HZQIZv', 'WHWifk', '1991-10-20', 1.0)
+('76-7832', 'RHMwZR', 'edQPfO', '1991-09-26', 1.0)
+('81-0048', 'ISJAnb', 'VZWjhA', '1992-10-23', 1.0)
+('88-2778', 'AAkSVv', 'mKUErO', '1997-08-16', 1.0)
+
+=== resut from our application
+[RESUTL Tuple] 50-7350
+[RESUTL Tuple] 52-7778
+[RESUTL Tuple] 88-2778
+[RESUTL Tuple] 59-9409
+[RESUTL Tuple] 57-1585
+[RESUTL Tuple] 81-0048
+[RESUTL Tuple] 76-7832
+[RESUTL Tuple] 74-6959
+
+
+> GOOD

@@ -8,6 +8,15 @@ import java.nio.file.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+/**
+ * 
+ * 
+ * Please Read the README.md File
+ * 
+ * 
+ * 
+ **/
+
 public class DBApp implements DBAppInterface {
 
 

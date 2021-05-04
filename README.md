@@ -1,14 +1,6 @@
-# DB ZOFT II
-> ah sh*t here we go again
+# DBApp Project
 
-# TODOs
-- [ ]  Makinng Constants Class to easy access and modify `string constatns`
-- [ ]  Test the Deserialization of stored tables 
-- [x]  cache the `min` , `max` & `size` of the data in the page object
-- [x]  implement the `_defragment` functionality in the Table class
-- [ ] test the  `_searchRows` & `_searchPages` 
+> NOTES to test this project
 
-# Questions
-- [ ] Do we need to keep the records continous?
-- [ ] if not do we need to handle the defragmentation after the delete?
-- [ ] if there were not keys to match with in the delete do we delete the whole table? 
+* if you want to allow dublicates in the clustring key set the `ALLOW_DUBLICATE` in the DBApp Class to `true`
+* the way we implement the logic of pages is that each table would have it's own directory with its name so __between tests please delete this directories to avoid getting DBAppException as you are creating tables that are already exists the tables already exists__

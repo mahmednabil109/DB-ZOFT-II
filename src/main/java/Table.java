@@ -219,6 +219,7 @@ class Table implements Serializable {
 
         // first we call _searchRows to get the needed rows to be deleted
         Hashtable<Page, Vector<Integer>> rows = _searchRows(columnNameVlaue);
+
         // if there are no rows that satsifiy the conditions return
         if (rows == null)
             return;
@@ -226,8 +227,14 @@ class Table implements Serializable {
         // delete the records from the pages
         for (Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()) {
             Page page = entries.getKey();
+            Vector<Integer> indexes = entries.getValue();
+            
+            Collections.sort(indexes);
+            Collections.reverse(indexes);
+            
             page.load();
-            for (Integer i : entries.getValue()) {
+
+            for (Integer i : indexes){
                 page.remove(i.intValue());
                 this.size--;
             }
