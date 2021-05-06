@@ -113,7 +113,7 @@ class Table implements Serializable {
                 Page prevPage = buckets.get(pageIndex - 1);
                 prevPage.load();
                 page.load();
-                // get the last tuple
+                // get the first tuple
                 tuple = page.insert(tuple, false);
                 prevPage.insert(tuple, false);
                 page.saveAndFree();
