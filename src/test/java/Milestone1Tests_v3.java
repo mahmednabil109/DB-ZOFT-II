@@ -2,6 +2,7 @@ import org.junit.jupiter.api.*;
 
 import java.awt.Polygon;
 import java.io.*;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -9,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -113,14 +116,123 @@ public class Milestone1Tests_v3 {
         DBApp dbApp = new DBApp();
         dbApp.init();
         int limit = 500;
-
+        System.out.println("Inserting Table students");
         insertStudentRecords(dbApp, limit);
+        System.out.println("[DONE] Inserting Table students");
+        System.out.println("Inserting Table courses");
         insertCoursesRecords(dbApp, limit);
+        System.out.println("[DONE] Inserting Table courses");
+        System.out.println("Inserting Table transcripts");
         insertTranscriptsRecords(dbApp, limit);
+        System.out.println("[DONE] Inserting Table transcripts");
+        System.out.println("Inserting Table pcs");       
         insertPCsRecords(dbApp, limit);
+        System.out.println("[DONE] Inserting Table pcs");
         dbApp = null;
     }
 
+    @Test
+    public void getAll() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Hashtable<String, Object> row = new Hashtable();
+        row.put("pc_id", 17357);
+        row.put("student_id", "43-12121");
+
+        dbApp.insertIntoTable("pcs", row);
+        
+
+
+    }
+
+    @Test
+    public void testReadRow() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("pcs");
+
+        Hashtable<String, Object> row = new Hashtable();
+        row.put("pc_id", 17357);
+        row.put("student_id", "43-12121");
+
+        
+        
+        Method _searchRowsMethod = Table.class.getDeclaredMethod("_searchRows", Hashtable.class);
+        _searchRowsMethod.setAccessible(true);
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, row);
+        Assertions.assertNotNull(ret);
+
+        int count = 0;
+        for(Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()){
+            System.out.println(entries.getValue());
+            count += entries.getValue().size();
+        }
+
+        Assertions.assertEquals(count, 1);
+        
+    }
+
+    @Test
+    public void testDeleteRows() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Hashtable<String, Object> row = new Hashtable();
+        row.put("pc_id", 17357);
+        
+        dbApp.deleteFromTable("pcs", row);
+    }
+
+
+    @Test
+    public void testDuplicateIsertion() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        String table = "pcs";
+        Hashtable<String, Object> row = new Hashtable();
+        row.put("pc_id", 17357);
+        row.put("student_id", "43-12121");
+
+        if(!DBApp.ALLOW_DUBLICATES){
+            Assertions.assertThrows(DBAppException.class, () -> {
+                    dbApp.insertIntoTable(table, row);
+                }
+            );
+        }else{
+            dbApp.insertIntoTable(table, row);
+        }
+
+    }
+
+    @Test
+    public void checkDublicate() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("pcs");
+
+        Hashtable<String, Object> row = new Hashtable();
+        row.put("pc_id", 17357);
+        row.put("student_id", "43-12121");
+
+        
+        
+        Method _searchRowsMethod = Table.class.getDeclaredMethod("_searchRows", Hashtable.class);
+        _searchRowsMethod.setAccessible(true);
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, row);
+
+        int count = 0;
+        for(Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()){
+            System.out.println(entries.getValue());
+            count += entries.getValue().size();
+        }
+
+        Assertions.assertEquals(count, 1);
+        
+    }
 
     @Test
     public void testExtraStudentsInsertion() {
@@ -212,26 +324,6 @@ public class Milestone1Tests_v3 {
         );
     }
 
-    @Test
-    public void testDuplicateIsertion() throws Exception{
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "pcs";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("pc_id", 17357);
-        row.put("student_id", "43-12121");
-
-        if(!DBApp.ALLOW_DUBLICATES){
-            Assertions.assertThrows(DBAppException.class, () -> {
-                    dbApp.insertIntoTable(table, row);
-                }
-            );
-        }else{
-            dbApp.insertIntoTable(table, row);
-        }
-
-    }
 
     @Test
     public void testUpdateStudents() throws Exception {

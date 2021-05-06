@@ -44,7 +44,6 @@ public class Milestone1Test_v2 {
             throw new Exception("Cannot set page size, make sure that key `MaximumRowsCountinTablePage` is present in DBApp.config");
         }
 
-//        System.out.println("CONFIG" + configFilePath);
         Files.write(Paths.get(configFilePath), config);
 
     }

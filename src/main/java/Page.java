@@ -64,11 +64,12 @@ class Page implements Serializable {
             }
 
             if(!DBApp.ALLOW_DUBLICATES){
-                if(!(min >= data.size()) && data.get(min).equals(tuple))
+                if(!(min >= data.size()) && data.get(min).compareTo(tuple) == 0)
                     throw new DBAppException();
-                if(!(min == 0) && data.get(min - 1).equals(tuple))
+                if(!(min == 0) && data.get(min - 1).compareTo(tuple) == 0){
                     throw new DBAppException();
-                if(!(min >= data.size()-1) && data.get(min + 1).equals(tuple))
+                }
+                if(!(min >= data.size()-1) && data.get(min + 1).compareTo(tuple) == 0)
                     throw new DBAppException();
             }
         }
@@ -79,7 +80,6 @@ class Page implements Serializable {
         Tuple res = null;
 
         int index = this._searchTuple(tuple, false);
-        
         data.add(index, tuple);
 
         if (data.size() == DBApp.maxPerPage + 1) {

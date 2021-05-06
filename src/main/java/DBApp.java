@@ -47,10 +47,24 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void init() {
-        // check for the table directory
+        // check for the metadata file
+        try{
+            Path pathToMetaData = Paths.get(Resources.getResourcePath(), "metadata.csv");
+            if(!Files.exists(pathToMetaData)){
+                Files.createFile(pathToMetaData);
+            }
+        } catch(IOException | URISyntaxException e){
+            System.out.println("[ERROR] someting habbens when checking for the metadata.csv file");
+            e.printStackTrace();
+        }
+
+        // check for the data directory & tables directory
         try {
-            pathToRelations = Paths.get(Resources.getResourcePath(), "data");
-            if (!Files.exists(pathToRelations)) {
+            Path pathToData = Paths.get(Resources.getResourcePath(), "data");
+            pathToRelations = Paths.get(pathToData.toString(), ".tables");
+
+            if (!Files.exists(pathToData)) {
+                Files.createDirectories(pathToData);
                 Files.createDirectories(pathToRelations);
             }
         } catch (IOException | URISyntaxException e) {
@@ -58,7 +72,7 @@ public class DBApp implements DBAppInterface {
             e.printStackTrace();
         }
 
-        // TODO need to be tested
+
         // check for saved tables and load them if any
         try {
             Stream<Path> tablesPaths = Files.walk(pathToRelations).filter(Files::isRegularFile);
@@ -106,10 +120,9 @@ public class DBApp implements DBAppInterface {
             throws DBAppException {
         Table t = this._getTable(tableName);
         if (t == null) {
+            System.out.printf("[ERROR] something habbens when openning table %s", tableName);
             throw new DBAppException();
         } else {
-            // System.out.printf("[LOG] this is the %s table %s and it has %d pages %s\n", t.name, t.toString(),
-            //         t.buckets.size(), t.buckets.toString());
             t.update(clusteringKeyValue, columnNameValue);
         }
     }
@@ -140,20 +153,10 @@ public class DBApp implements DBAppInterface {
     public Table _getTable(String tableName) {
         for (Table t : tables){
             if (t.name.equals(tableName)) {
-                // System.out.printf("[LOG] this is the %s table %s and it has %d pages %s\n", t.name, t.toString(),
-                //         t.buckets.size(), t.buckets.toString());
-
                 return t;
             }
         }
         return null;
-    }
-
-    public static void main(String args[]) {
-
-        // !tmp test
-
-        
     }
 
 }

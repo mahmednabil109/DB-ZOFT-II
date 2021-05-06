@@ -158,6 +158,38 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(7)
+    public void TestUpdate() throws Exception{
+        DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("students");
+
+        Hashtable<String, Object> newName = new Hashtable<>();
+        newName.put("first_name", "hamada");
+
+        System.out.println("Updateing the name of the student with id 88-2778");
+        dbApp.updateTable("students", "88-2778", newName);
+        System.out.println("[DONE] Updating name");
+
+        Method _searchRowsMethod = Table.class.getDeclaredMethod("_searchRows", Hashtable.class);
+        _searchRowsMethod.setAccessible(true);
+
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, newName);
+        String name = "";
+        for(Map.Entry<Page, Vector<Integer>> en : ret.entrySet()){
+            Page p = en.getKey();
+            int index = en.getValue().get(0);
+            p.load();
+            name = (String) p.data.get(index).get("first_name");
+            p.free();
+            break;
+        } 
+        
+        Assertions.assertEquals(name, "hamada");
+    }
+
+    @Test
+    @Order(8)
     public void TestDeleteRows() throws Exception{
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -173,7 +205,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     public void testQueryDeletedData() throws Exception{
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -208,7 +240,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     public void checkDataArrangment() throws Exception{
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -234,7 +266,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     public void testMinMaxPage() throws Exception{
         DBApp dbApp = new DBApp();
         dbApp.init();

@@ -48,7 +48,7 @@ class Table implements Serializable {
 
         // initalize the Folder for the pages
         try {
-            this.pathToPages = Paths.get(Resources.getResourcePath(), this.name).toString();
+            this.pathToPages = Paths.get(Resources.getResourcePath(), "data", this.name).toString();
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
             System.out.println("[ERROR] something wrong habben when trying to read the resources location");
@@ -465,7 +465,7 @@ class Table implements Serializable {
     private void _saveChanges() {
         try {
             // serialize the object
-            Path p = Paths.get(Resources.getResourcePath(), "data", this.HASHCODE);
+            Path p = Paths.get(Resources.getResourcePath(), "data", ".tables", this.HASHCODE);
             FileOutputStream file = new FileOutputStream(p.toString());
             ObjectOutputStream out = new ObjectOutputStream(file);
             out.writeObject(this);
@@ -506,10 +506,5 @@ class Table implements Serializable {
             e.printStackTrace();
         }
     }
-
-    public static void main(String args[]) throws Exception {
-        
-    }
-
 
 }
