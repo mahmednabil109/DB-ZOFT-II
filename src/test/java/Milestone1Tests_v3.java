@@ -131,22 +131,21 @@ public class Milestone1Tests_v3 {
         dbApp = null;
     }
 
-    @Test
-    public void getAll() throws Exception{
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
+    // @Test
+    // public void getAll() throws Exception{
+    //     final DBApp dbApp = new DBApp();
+    //     dbApp.init();
 
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("pc_id", 17357);
-        row.put("student_id", "43-12121");
+    //     Hashtable<String, Object> row = new Hashtable();
+    //     row.put("pc_id", 17357);
+    //     row.put("student_id", "43-12121");
 
-        dbApp.insertIntoTable("pcs", row);
-        
+    //     dbApp.insertIntoTable("pcs", row);
 
-
-    }
+    // }
 
     @Test
+    @Order(6)
     public void testReadRow() throws Exception{
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -155,7 +154,7 @@ public class Milestone1Tests_v3 {
 
         Hashtable<String, Object> row = new Hashtable();
         row.put("pc_id", 17357);
-        row.put("student_id", "43-12121");
+        // row.put("student_id", "43-12121");
 
         
         
@@ -174,19 +173,20 @@ public class Milestone1Tests_v3 {
         
     }
 
-    @Test
-    public void testDeleteRows() throws Exception{
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
+    // @Test
+    // public void testDeleteRows() throws Exception{
+    //     final DBApp dbApp = new DBApp();
+    //     dbApp.init();
 
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("pc_id", 17357);
+    //     Hashtable<String, Object> row = new Hashtable();
+    //     row.put("pc_id", 17357);
         
-        dbApp.deleteFromTable("pcs", row);
-    }
+    //     dbApp.deleteFromTable("pcs", row);
+    // }
 
 
     @Test
+    @Order(7)
     public void testDuplicateIsertion() throws Exception{
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -208,6 +208,7 @@ public class Milestone1Tests_v3 {
     }
 
     @Test
+    @Order(8)
     public void checkDublicate() throws Exception{
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -216,21 +217,24 @@ public class Milestone1Tests_v3 {
 
         Hashtable<String, Object> row = new Hashtable();
         row.put("pc_id", 17357);
-        row.put("student_id", "43-12121");
+        // row.put("student_id", "43-12121");
 
         
         
         Method _searchRowsMethod = Table.class.getDeclaredMethod("_searchRows", Hashtable.class);
         _searchRowsMethod.setAccessible(true);
         Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, row);
-
+        Assertions.assertNotNull(ret);
         int count = 0;
         for(Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()){
             System.out.println(entries.getValue());
             count += entries.getValue().size();
         }
 
-        Assertions.assertEquals(count, 1);
+        if(!DBApp.ALLOW_DUBLICATES)
+            Assertions.assertEquals(count, 1);
+        else
+            Assertions.assertEquals(count, 2);
         
     }
 

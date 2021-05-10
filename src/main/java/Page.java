@@ -178,6 +178,7 @@ class Page implements Serializable {
     private void _updateCachedValues() {
         // update the size, min, max to avoid loading the pages every time
         this.size = data.size();
+        if(this.size == 0) return;
         this.min = data.firstElement().get(data.firstElement().primaryKeyName);
         this.max = data.lastElement().get(data.lastElement().primaryKeyName);
     }

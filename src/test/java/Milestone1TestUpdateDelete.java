@@ -5,6 +5,7 @@ import java.awt.Polygon;
 import java.io.*;
 import java.util.*;
 import java.lang.reflect.*;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,11 +16,17 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class Milestone1TestUpdateDelete {
+
+    public static Vector<Tuple> page1 = new Vector<Tuple>(), page3 = new Vector<Tuple>();
+    public static int tableSize = 0;
+
     @Test
     @Order(1)
     public void testSetPageSize() throws Exception {
@@ -52,9 +59,8 @@ public class Milestone1TestUpdateDelete {
                     "Cannot set page size, make sure that key `MaximumRowsCountinTablePage` is present in DBApp.config");
         }
 
-        
         Files.write(Paths.get(configFilePath), config);
-        
+
         app = new DBApp();
         app.init();
         System.out.printf("[AFTER] %d\n", app.maxPerPage);
@@ -125,7 +131,8 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(6)
-    public void TestQueryReslut() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    public void TestQueryReslut() throws NoSuchMethodException, SecurityException, IllegalAccessException,
+            IllegalArgumentException, InvocationTargetException {
         DBApp dbApp = new DBApp();
         dbApp.init();
         Table table = dbApp._getTable("students");
@@ -139,16 +146,17 @@ public class Milestone1TestUpdateDelete {
         Method _searchRowsMethod = tableClass.getDeclaredMethod("_searchRows", Hashtable.class);
         _searchRowsMethod.setAccessible(true);
         int numberOfRows = 0;
-        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, skeys);
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table,
+                skeys);
         Assertions.assertNotNull(ret);
-        for(Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()){
+        for (Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()) {
             Page p = entries.getKey();
             Vector<Integer> indexes = entries.getValue();
             p.load();
-            for(int i : indexes){
+            for (int i : indexes) {
                 System.out.printf("[RESUTL Tuple] %s \n", p.data.get(i));
-                numberOfRows ++;
-            }    
+                numberOfRows++;
+            }
             p.free();
         }
         Assertions.assertEquals(numberOfRows, 8);
@@ -158,7 +166,7 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(7)
-    public void TestUpdate() throws Exception{
+    public void TestUpdate() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
 
@@ -174,26 +182,27 @@ public class Milestone1TestUpdateDelete {
         Method _searchRowsMethod = Table.class.getDeclaredMethod("_searchRows", Hashtable.class);
         _searchRowsMethod.setAccessible(true);
 
-        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, newName);
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table,
+                newName);
         String name = "";
-        for(Map.Entry<Page, Vector<Integer>> en : ret.entrySet()){
+        for (Map.Entry<Page, Vector<Integer>> en : ret.entrySet()) {
             Page p = en.getKey();
             int index = en.getValue().get(0);
             p.load();
             name = (String) p.data.get(index).get("first_name");
             p.free();
             break;
-        } 
-        
+        }
+
         Assertions.assertEquals(name, "hamada");
     }
 
     @Test
     @Order(8)
-    public void TestDeleteRows() throws Exception{
+    public void TestDeleteRows() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
-        
+
         Hashtable<String, Object> skeys = new Hashtable<>();
         skeys.put("gpa", 1.0);
 
@@ -206,7 +215,7 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(9)
-    public void testQueryDeletedData() throws Exception{
+    public void testQueryDeletedData() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
         Table table = dbApp._getTable("students");
@@ -220,16 +229,17 @@ public class Milestone1TestUpdateDelete {
         Method _searchRowsMethod = tableClass.getDeclaredMethod("_searchRows", Hashtable.class);
         _searchRowsMethod.setAccessible(true);
         int numberOfRows = 0;
-        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table, skeys);
-        if(ret != null){
-            for(Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()){
+        Hashtable<Page, Vector<Integer>> ret = (Hashtable<Page, Vector<Integer>>) _searchRowsMethod.invoke(table,
+                skeys);
+        if (ret != null) {
+            for (Map.Entry<Page, Vector<Integer>> entries : ret.entrySet()) {
                 Page p = entries.getKey();
                 Vector<Integer> indexes = entries.getValue();
                 p.load();
-                for(int i : indexes){
+                for (int i : indexes) {
                     System.out.printf("[RESUTL Tuple] %s\n", p.data.get(i).getPrimeKey());
-                    numberOfRows ++;
-                }    
+                    numberOfRows++;
+                }
                 p.free();
             }
         }
@@ -241,24 +251,24 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(10)
-    public void checkDataArrangment() throws Exception{
+    public void checkDataArrangment() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
         Table table = dbApp._getTable("students");
-        
+
         Vector<String> data = new Vector<String>();
 
-        for(Page page : table.buckets){
+        for (Page page : table.buckets) {
             Assertions.assertTrue(page.size() <= DBApp.maxPerPage);
             page.load();
-            for(Tuple t : page.data)
+            for (Tuple t : page.data)
                 data.add((String) t.getPrimeKey());
             page.free();
         }
 
-        for(int i=0;i<data.size()-1;i++)
-            if(data.get(i).compareTo(data.get(i+1)) > 0){
-                System.out.printf("%s !< %s \n", data.get(i), data.get(i+1));
+        for (int i = 0; i < data.size() - 1; i++)
+            if (data.get(i).compareTo(data.get(i + 1)) > 0) {
+                System.out.printf("%s !< %s \n", data.get(i), data.get(i + 1));
                 throw new Exception("data is not sorted");
             }
         System.out.println(data.size());
@@ -267,12 +277,12 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(11)
-    public void testMinMaxPage() throws Exception{
+    public void testMinMaxPage() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
-        Table table = dbApp._getTable("students"); 
-        
-        for(Page page : table.buckets){
+        Table table = dbApp._getTable("students");
+
+        for (Page page : table.buckets) {
             Object min = page.min, max = page.max;
             page.load();
             System.out.printf("%s should be equal %s\n", min.toString(), page.data.firstElement().toString());
@@ -284,7 +294,133 @@ public class Milestone1TestUpdateDelete {
         }
         dbApp = null;
     }
-   
+
+    @Test
+    @Order(12)
+    public void testDeletePages() throws Exception {
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("students");
+        tableSize = (int) table.size.longValue();
+
+        Page p1, p3;
+        Assertions.assertEquals(table.buckets.size(), 15);
+        p1 = table.buckets.get(0);
+        p3 = table.buckets.get(2);
+        page1 = new Vector<Tuple>();
+        page3 = new Vector<Tuple>();
+
+        p1.load();
+        p3.load();
+        for (Tuple t : p1.data)
+            page1.add(t);
+        p1.free();
+        for (Tuple t : p3.data)
+            page3.add(t);
+        p3.free();
+
+        // delete the first page
+        for (Tuple t : page1) {
+            Hashtable<String, Object> row = new Hashtable<>();
+            row.put(t.primaryKeyName, t.getPrimeKey());
+            dbApp.deleteFromTable("students", row);
+        }
+        System.out.println("[DONE] Deleting first Page");
+        // delete the thrid page
+        for (Tuple t : page3) {
+            Hashtable<String, Object> row = new Hashtable<>();
+            row.put(t.primaryKeyName, t.getPrimeKey());
+            dbApp.deleteFromTable("students", row);
+        }
+
+        System.out.println("[DONE] Deleting third Page");
+
+        Assertions.assertEquals(table.buckets.size(), 13);
+
+        Assertions.assertEquals(getNumberOfPages(), 13);
+    }
+
+    @Test
+    @Order(13)
+    public void reInsertPages() throws Exception {
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("students");
+
+        for (Tuple t : page3) {
+            Hashtable<String, Object> row = new Hashtable<>();
+
+            row.put(t.primaryKeyName, t.getPrimeKey());
+            row.put("first_name", t.get("first_name"));
+            row.put("last_name", t.get("last_name"));
+            row.put("gpa", t.get("gpa"));
+            row.put("dob", t.get("dob"));
+
+            dbApp.insertIntoTable("students", row);
+        }
+
+        System.out.println("[DONE] Inserting thrid Page");
+
+        Assertions.assertEquals(table.buckets.size(), 14);
+        Assertions.assertEquals(getNumberOfPages(), 14);
+
+        for (Tuple t : page1) {
+            Hashtable<String, Object> row = new Hashtable<>();
+
+            row.put(t.primaryKeyName, t.getPrimeKey());
+            row.put("first_name", t.get("first_name"));
+            row.put("last_name", t.get("last_name"));
+            row.put("gpa", t.get("gpa"));
+            row.put("dob", t.get("dob"));
+
+            dbApp.insertIntoTable("students", row);
+        }
+        System.out.println("[DONE] Inserting first Page");
+
+        Assertions.assertEquals(table.buckets.size(), 15);
+        Assertions.assertEquals(getNumberOfPages(), 15);
+        Assertions.assertEquals((int) table.size.longValue(), tableSize);
+    }
+
+    @Test
+    @Order(14)
+    public void checkDataArrangment2() throws Exception {
+        DBApp dbApp = new DBApp();
+        dbApp.init();
+        Table table = dbApp._getTable("students");
+
+        Vector<String> data = new Vector<String>();
+
+        for (Page page : table.buckets) {
+            Assertions.assertTrue(page.size() <= DBApp.maxPerPage);
+            page.load();
+            for (Tuple t : page.data)
+                data.add((String) t.getPrimeKey());
+            page.free();
+        }
+
+        for (int i = 0; i < data.size() - 1; i++)
+            if (data.get(i).compareTo(data.get(i + 1)) > 0) {
+                System.out.printf("%s !< %s \n", data.get(i), data.get(i + 1));
+                throw new Exception("data is not sorted");
+            }
+        System.out.println(data.size());
+        dbApp = null;
+    }
+
+    private int getNumberOfPages() throws Exception {
+        int number = 0;
+        Stream<Path> files = Files.walk(Paths.get(Resources.getResourcePath(), "data", "students"))
+                .filter(Files::isRegularFile);
+        Iterator itr = files.iterator();
+        while (itr.hasNext()) {
+            number++;
+            itr.next();
+        }
+        return number;
+    }
 
     private void insertStudentRecords(DBApp dbApp, int limit) throws Exception {
         BufferedReader studentsTable = new BufferedReader(new FileReader("src/main/resources/students_table.csv"));

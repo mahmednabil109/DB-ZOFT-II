@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat;
 
 public class DBApp implements DBAppInterface {
 
-
     // GLOBAL OPTIONS FOR THE DB
     public static boolean ALLOW_DUBLICATES = false;
     // vector to hold table objects
@@ -48,12 +47,12 @@ public class DBApp implements DBAppInterface {
     @Override
     public void init() {
         // check for the metadata file
-        try{
+        try {
             Path pathToMetaData = Paths.get(Resources.getResourcePath(), "metadata.csv");
-            if(!Files.exists(pathToMetaData)){
+            if (!Files.exists(pathToMetaData)) {
                 Files.createFile(pathToMetaData);
             }
-        } catch(IOException | URISyntaxException e){
+        } catch (IOException | URISyntaxException e) {
             System.out.println("[ERROR] someting habbens when checking for the metadata.csv file");
             e.printStackTrace();
         }
@@ -66,12 +65,15 @@ public class DBApp implements DBAppInterface {
             if (!Files.exists(pathToData)) {
                 Files.createDirectories(pathToData);
                 Files.createDirectories(pathToRelations);
+            } else {
+                if (!Files.exists(pathToRelations)) {
+                    Files.createDirectories(pathToRelations);
+                }
             }
         } catch (IOException | URISyntaxException e) {
             System.out.println("[ERROR] someting habbens when checking for the tables directory");
             e.printStackTrace();
         }
-
 
         // check for saved tables and load them if any
         try {
@@ -106,7 +108,7 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void insertIntoTable(String tableName, Hashtable<String, Object> colNameValue) throws DBAppException {
-        
+
         Table t = this._getTable(tableName);
         if (t == null) {
             throw new DBAppException();
@@ -144,14 +146,14 @@ public class DBApp implements DBAppInterface {
 
     // FOR [DEBUGING]
     // public void printAllSizes() {
-    //     System.out.printf("[NUM] of tables is %d\n", this.tables.size());
-    //     for (Table t : this.tables)
-    //         System.out.printf("%s %s %s\n", t.name, t.toString(), t.buckets.toString());
+    // System.out.printf("[NUM] of tables is %d\n", this.tables.size());
+    // for (Table t : this.tables)
+    // System.out.printf("%s %s %s\n", t.name, t.toString(), t.buckets.toString());
     // }
 
     // TODO convert to private
     public Table _getTable(String tableName) {
-        for (Table t : tables){
+        for (Table t : tables) {
             if (t.name.equals(tableName)) {
                 return t;
             }
