@@ -5,14 +5,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 /**
  * 
  * 
  * Please Read the README.md File
- * 
  * 
  * 
  **/
@@ -27,15 +24,22 @@ public class DBApp implements DBAppInterface {
     Path pathToRelations;
     // max number of rows per page
     static int maxPerPage;
-    // TODO to be added Max number of keys in Index_Buckets
-
+    static int maxPerIndexPage;
     // static block to init GLOBAL_PARAMS
     static {
         try {
             Path ptc = Paths.get(Resources.getResourcePath(), "DBApp.config");
-            maxPerPage = Integer.parseInt(Files.readAllLines(ptc).get(0).split("=")[1].trim());
-        } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
+            List<String> lines = Files.readAllLines(ptc);
+            Hashtable<String, Integer> configs = new Hashtable<>();
+            for (String line : lines) {
+                String nameValue[] = line.split("=");
+                configs.put(nameValue[0], Integer.parseInt(nameValue[1]));
+            }
+            if (!configs.containsKey("MaximumRowsCountinPage") || !configs.containsKey("MaximumKeysCountinIndexBucket"))
+                throw new DBAppException();
+            maxPerPage = configs.get("MaximumRowsCountinPage");
+            maxPerIndexPage = configs.get("MaximumKeysCountinIndexBucket");
+        } catch (IOException | URISyntaxException | DBAppException e) {
             System.out.println("[ERROR] somthing habben when reading DBApp.config");
         }
     }
@@ -102,11 +106,6 @@ public class DBApp implements DBAppInterface {
     }
 
     @Override
-    public void createIndex(String tableName, String[] columnNames) throws DBAppException {
-        // TODO to be added later
-    }
-
-    @Override
     public void insertIntoTable(String tableName, Hashtable<String, Object> colNameValue) throws DBAppException {
 
         Table t = this._getTable(tableName);
@@ -133,25 +132,29 @@ public class DBApp implements DBAppInterface {
     public void deleteFromTable(String tableName, Hashtable<String, Object> columnNameValue) throws DBAppException {
         Table table = this._getTable(tableName);
         if (table == null) {
-            System.out.printf("[ERROR] something habbens when openning table %s", tableName);
+            System.out.printf("[ERROR] something habbens when openning table %s\n", tableName);
             throw new DBAppException();
         }
         table.delete(columnNameValue);
     }
 
     @Override
+    public void createIndex(String tableName, String[] columnNames) throws DBAppException, ClassNotFoundException {
+        Table table = this._getTable(tableName);
+        if(table == null){
+            System.out.printf("[ERROR] something habbens when openning table %s\n", tableName);
+            throw  new DBAppException();
+        }
+        table.createIndex(columnNames);
+    }
+
+    @Override
     public Iterator selectFromTable(SQLTerm[] sqlTerms, String[] arrayOperators) throws DBAppException {
+
         return null;
     }
 
-    // FOR [DEBUGING]
-    // public void printAllSizes() {
-    // System.out.printf("[NUM] of tables is %d\n", this.tables.size());
-    // for (Table t : this.tables)
-    // System.out.printf("%s %s %s\n", t.name, t.toString(), t.buckets.toString());
-    // }
-
-    // TODO convert to private
+    // ? public to ease the test rahter than using the reflection api
     public Table _getTable(String tableName) {
         for (Table t : tables) {
             if (t.name.equals(tableName)) {

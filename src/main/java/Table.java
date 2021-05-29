@@ -8,7 +8,7 @@ import java.util.*;
 class Table implements Serializable {
 
     // finalls
-    static final String DateFormate = "yyyy-MM-dd";
+    public static final String DateFormate = "yyyy-MM-dd";
     // name of the table "relation"
     String name, primaryKeyName;
     // number of records to alse calculate the number of pages stored
@@ -17,8 +17,10 @@ class Table implements Serializable {
     int numberOfColumns;
     // hashtabel to store the columns names and types
     Hashtable<String, String> htbColumnsNameType, htbColumnsMin, htbColumnsMax;
-    // dll that holds the references "names" of the pages on the desk
+    // vector that holds the references "names" of the pages on the desk
     Vector<Page> buckets;
+    // htb  that holds all the indexes
+    Hashtable<Set<String>, Index> indexes;
     // path to the pages folder
     private String pathToPages;
 
@@ -40,7 +42,8 @@ class Table implements Serializable {
         this.name = name;
         this.HASHCODE = this.toString();
         this.primaryKeyName = primaryKeyName;
-        this.buckets = new Vector<Page>();
+        this.buckets = new Vector<>();
+        this.indexes = new Hashtable<>();
         this.numberOfColumns = columnsInfos.size();
         this.htbColumnsNameType = (Hashtable<String, String>) columnsInfos.clone();
         this.htbColumnsMin = (Hashtable<String, String>) columnMin.clone();
@@ -74,6 +77,10 @@ class Table implements Serializable {
         this._updateMetaData();
 
     }
+
+    public String getPathToPages(){
+        return this.pathToPages;
+    } 
 
     public void insert(Hashtable<String, Object> colNameValue) throws DBAppException {
 
@@ -257,6 +264,33 @@ class Table implements Serializable {
         // if(this.spaceUtlize < this.thresholdUtliz)
         // this._defragment();
         this._saveChanges();
+    }
+
+    public void createIndex(String[] columnNames) throws DBAppException, ClassNotFoundException{
+        // checking if the columns exists
+        for(String columnName : columnNames){
+            if(!this.htbColumnsNameType.keySet().contains(columnName)){
+                System.out.printf("[ERROR] column named %s dose not exists in table %s", columnName, this.name);
+                throw new DBAppException();
+            }
+        }
+
+        //check if an index on this columns aleardy exists;
+        Set<String> columns = new HashSet<>();
+        for(String columnName : columnNames)
+            columns.add(columnName);
+        for(Set<String> existsColumns : this.indexes.keySet())
+            if(existsColumns.equals(columns)){
+                System.out.printf("[WARNING] this index is already exists");
+                return;
+            }
+
+        // creating and adding the index to the table
+        this.indexes.put(
+            columns,
+            new Index(this, columnNames, this.htbColumnsNameType, this.htbColumnsMin, this.htbColumnsMax)
+        );
+
     }
 
     // [DEBUG] function to print all the content of the pages
@@ -506,5 +540,4 @@ class Table implements Serializable {
             e.printStackTrace();
         }
     }
-
 }

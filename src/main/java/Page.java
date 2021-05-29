@@ -2,8 +2,6 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
-//TODOS cache the size , min ,  max of data to avoid loading the data every time
-
 // class to hold needed info for each page
 class Page implements Serializable {
 
@@ -92,13 +90,6 @@ class Page implements Serializable {
 
         this._updateCachedValues();
 
-        // ![DEBUG]
-        // System.out.printf("inserted %s at index %d\n", tuple.toString(), index);
-        // System.out.println("=====================");
-        // for(Tuple t : data)
-        //     System.out.printf("inserted %s\n", t.toString());
-        // System.out.println("=====================");
-
         return res;
     }
 
@@ -150,7 +141,6 @@ class Page implements Serializable {
         return tuple;
     }
 
-    // TODO uncomment free load save
     public void free() {
         // free the memory occupied be the page in the main memory
         this.data = null;
