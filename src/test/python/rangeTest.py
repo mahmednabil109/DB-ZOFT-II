@@ -8,8 +8,8 @@ def convert(t):
         _t += chr(97 + t % 26)
         t //= 26
     return _t
-print(convert(211))
-exit(0)
+print(convert(26 + 211))
+# exit(0)
 print(l)
 
 res = list(pro(l, l, repeat=2))
@@ -22,6 +22,7 @@ for i in range(4):
 
 print(t, res[211])
 
+t = 3
 _t = ''
 default = math.ceil(math.log(t + 26 ** len('a' * (len(res[0]) -1))) / math.log(26))
 while t > 0:
@@ -40,15 +41,26 @@ print(_t[::-1])
     aa - zz,                 aaa - zzz,         aaaa - zzzz
    0   26^2-1, 
 
+   
+    aa -> 100 
+
+    a -> zzz
+
+    a aa aaa aab aac ab abc 
+
 
     default = 3
 
    0.2      1.23
  0  25  26    26^2 - 1
+
+
  a - z , aa - zz , aaa - zzz, aaaa - zzzz
  log(n) 
     26  
-log(n) / log(26)   
+log(n) / log(26)
+
+
 
 """
 
