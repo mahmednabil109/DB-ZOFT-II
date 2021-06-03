@@ -1,5 +1,5 @@
-A
-AA
+A@@
+AA@
 AAA
 AAB
 AAC
@@ -52,7 +52,7 @@ AAw
 AAx
 AAy
 AAz
-AB
+AB@
 ABA
 ABB
 ABC
@@ -105,7 +105,7 @@ ABw
 ABx
 ABy
 ABz
-AC
+AC@
 ACA
 ACB
 ACC

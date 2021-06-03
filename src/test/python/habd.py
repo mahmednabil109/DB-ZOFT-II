@@ -6,6 +6,8 @@ l = l.upper() + l
 # res = list(product(l))
 # res += list(product(l, l))
 # res += list(product(l, l, l))
+# print(len(res))
+# print(52 + 52 ** 2 + 52 ** 3)
 # res = map(''.join, res)
 # res = sorted(res)
 # _t = '\n'.join(res)
@@ -38,7 +40,7 @@ def reach(base, offset):
                 offset = 0
     return base
 
-print(inc('AzA'), reach('A@@', 143363))
+print(inc('AzA'), reach('A@@', 143365))
 # B@@
 
 """

@@ -32,6 +32,10 @@ class Tuple implements Comparable<Tuple>, Serializable {
         return ((Comparable) pkClass.cast(pk)).compareTo(pkClass.cast(o.getPrimeKey()));
     }
 
+    public boolean equals(Tuple o){
+        return this.compareTo(o) == 0;
+    }
+
     @Override
     public String toString() {
         StringBuilder tupleString = new StringBuilder("");
