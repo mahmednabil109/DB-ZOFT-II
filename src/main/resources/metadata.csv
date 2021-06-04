@@ -3,21 +3,3 @@ students,last_name,java.lang.String,false,False,"AAAAAA","zzzzzz"
 students,first_name,java.lang.String,false,False,"AAAAAA","zzzzzz"
 students,dob,java.util.Date,false,False,1990-01-01,2000-12-31
 students,id,java.lang.String,true,False,"43-0000","99-9999"
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,class java.lang.Integer,true,False,0,9
-test1,id,java.lang.Integer,true,False,0,9
-test1,id,java.lang.Integer,true,False,0,99
-test1,id,java.lang.Integer,true,False,0,5
-test1,id,java.lang.Integer,true,False,0,5
-test1,id,java.lang.Integer,true,False,0,10
-test1,id,java.lang.Integer,true,False,0,10
-test1,age,java.lang.Integer,false,False,0,100
-test1,id,java.lang.Integer,true,False,0,10
-test1,age,java.lang.String,false,False,"a","z"
-test1,id,java.lang.Integer,true,False,0,10
-test1,age,java.lang.String,false,False,"A","zz"
-test1,id,java.lang.Integer,true,False,0,10

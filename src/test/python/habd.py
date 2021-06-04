@@ -40,7 +40,11 @@ def reach(base, offset):
                 offset = 0
     return base
 
-print(inc('AzA'), reach('A@@', 143365))
+# print(inc('AzA'), reach('A@@@@@', 1216436111))
+step = 1977060966
+for i in range(1, 11):
+    print(reach('AAAA', i * step - 1))
+
 # B@@
 
 """

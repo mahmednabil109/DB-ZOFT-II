@@ -69,6 +69,7 @@ public class Index implements Serializable {
             }
             tPage.free();
         }
+        
         // write the data to the pages and save them
         for(Map.Entry<Integer, Vector<TuplePointer>> entries : pagePack.entrySet()){
             IndexPage iPage = new IndexPage(this.context, this.context.getPathToIndexes());
@@ -76,7 +77,7 @@ public class Index implements Serializable {
             for(TuplePointer tp : entries.getValue())
                 iPage.insert(tp);
             this.data.set(entries.getKey(), iPage);
-            iPage.save();
+            iPage.saveAndFree();
         }
     }
 
@@ -155,28 +156,39 @@ public class Index implements Serializable {
         }
 
         // !D
-        System.out.println(sets);
+        // System.out.println(sets);
         // compute the product of the resulted sets to get the positions
         Vector<Vector<Integer>> pos = this._permute(sets);
         // !D
-        System.out.println(pos);
+        // System.out.println(pos);
         // compute the mapped positions in the array
         int[] res = IntStream.
                     range(0, pos.size()).
                     map(p -> this._calcPos(pos.get(p))).
                     toArray();
         // !D
-        System.out.println(Arrays.toString(res));
+        // System.out.println(Arrays.toString(res));
 
         return res;
     }
 
     public HashSet<Tuple> search(Vector<SQLTerm> columns) throws DBAppException {
+        
+        // validate that those are the columns that the index is on
+        Set<String> columnNames = Arrays.asList(this.columns).stream().collect(Collectors.toSet());
+        for(SQLTerm st : columns)
+            if(!columnNames.contains(st._strColumnName)){
+                System.out.printf("[ERROR] the column < %s >is not in this index\n", st._strColumnName);
+                throw new DBAppException();
+            }
+        //!D
+        System.out.println("[LOG] those columns are realy exists");
+        
         Vector<Tuple> res = new Vector<>();
         //  here goes the dE7k
         // get the pages to filter the needed tuples
         //!D
-        System.out.println("size: " + this.data.size());
+        // System.out.println("size: " + this.data.size());
         Vector<IndexPage> pages = Arrays.stream(this._getPositions(columns)).
                                     boxed().
                                     map(i -> this.data.get(i)).
@@ -223,6 +235,10 @@ public class Index implements Serializable {
             prev *= this.dimentions.get(this.columns[i]).size;
         }
         return res;
+    }
+
+    public String toString(){
+        return this.dimentions.toString();
     }
     
 

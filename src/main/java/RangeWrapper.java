@@ -13,7 +13,9 @@ public class RangeWrapper implements Serializable{
     String baseStr;
     TreeMap<String, Integer> strMap;
     TreeMap<Long, Long> intMap;
-    private char [] l = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
+    private String ascii =  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private char [] l = ascii.toCharArray();
+    private String columnName;
 
     public RangeWrapper(
         int rank,
@@ -24,8 +26,11 @@ public class RangeWrapper implements Serializable{
 
         this.base = this.step = this.size = 0L;
         this.rank = rank;
+        this.columnName = columnName;
         strMap = new TreeMap<>();
         intMap = new TreeMap<>();
+        //!D
+        System.out.println(columnName + " " + columnType);
         this.type = Class.forName(columnType);
         if(!this._checkClass(type)){
             throw new DBAppException();
@@ -36,6 +41,8 @@ public class RangeWrapper implements Serializable{
     public int getPos(Object value) throws DBAppException{
         
         long intVal = 0;
+        //!D
+        System.out.printf("[LOG] value of the parameter is %s and the type is %s and the column is %s\n", value.getClass(), type.getName(), this.columnName);
         if(this.type.equals(String.class)){
             String key = strMap.ceilingKey((String) value);
             if(key == null) return -1;
@@ -78,42 +85,65 @@ public class RangeWrapper implements Serializable{
     private void _calculateRange(String min, String max) throws DBAppException{
         
         if(this.type.equals(String.class)){
-            int minLen = min.length(), maxLen = max.length();
-            long range = 0L;
+
             if(Pattern.matches(".*[^a-zA-Z].*", min)){
                 this._handleSpecialString(min, max);
                 return;
             }
 
-            // calculate the variations of the strings
-            for(int i= minLen; i<=maxLen; i++)
-                range += (long) Math.pow(52, i);
-            
-            this.size = Math.min(10, range);
-            this.baseStr = Utils.append(min, maxLen, '@');
-            char [] _baseStr = this.baseStr.toCharArray(); 
-            
-            for(int i=0; i<_baseStr.length; i++)
-                _baseStr[i] = (_baseStr[i] != '@') ?  'A' : '@';
-            
-            this.baseStr = new String(_baseStr);
-
-            if(range <= 10 ){
-                this.step = 1;
-            }else{
-                this.step = range / 10;
+            if(min.equals(max)){
+                strMap.put(min, 0);
+                this.step = 0;
+                this.size = 1;
+                return;
             }
+            // first change index
+            int FCI = -1, range = 0;
+            char [] minArr = min.toCharArray();
+            char [] maxArr = max.toCharArray();
+            if(max.startsWith(min) && min.length() < max.length()){
+                FCI = min.length();
+                range = ascii.indexOf(maxArr[FCI]) + 1;
+                this.size = Math.min(10, range);
+                if(range <= 10){
+                    this.step = 1;
+                }else{
+                    this.step = range / 10;
+                }
+                min += l[(int) this.step - 1];
+                minArr = min.toCharArray();
+                strMap.put(min, 0);
+                for(int i=1; i<this.size; i++){
+                    if(i != this.size - 1){
+                        minArr[FCI] = l[ascii.indexOf(minArr[FCI]) + (int)this.step];
+                        strMap.put(new String(minArr), i);
+                    }else{
+                        strMap.put(max, i);
+                    }
+                }
 
-            for(long i=1; i<=this.size; i++)
-                strMap.put(
-                    this._reach(this.baseStr, i != this.size ? (step * i - 1) : (range - 1)), 
-                    (int) i-1
-                );
-
-            char [] _tmpMax = max.toCharArray();
-            for(int i=0;i<_tmpMax.length; i++)
-                _tmpMax[i] = 'z';
-            strMap.put(new String(_tmpMax), (int) this.size - 1);
+            }else{
+                for(int i=0; i< Math.min(minArr.length, maxArr.length); i++)
+                    if(minArr[i] != maxArr[i]){
+                        FCI = i;
+                        break;
+                    }
+                range = ascii.indexOf(maxArr[FCI]) - ascii.indexOf(minArr[FCI]);
+                this.size = Math.min(10, range);
+                if(range <= 10){
+                    this.step = 1;
+                }else{
+                    this.step = range / 10;
+                }
+                for(int i=0; i<this.size; i++){
+                    if(i != this.size - 1){
+                        minArr[FCI] = l[ascii.indexOf(minArr[FCI]) + (int)this.step];
+                        strMap.put(new String(minArr), i);
+                    }else{
+                        strMap.put(max, i);
+                    }
+                }
+            }
 
         }else if(type.equals(Date.class)){
             Date minDate = this._parseDate(min), maxDate = this._parseDate(max); 
@@ -241,6 +271,15 @@ public class RangeWrapper implements Serializable{
             "( " + this.size + ", " + this.step + ", " + this.strMap.toString() + " )" :
             "( " + this.size + ", " + this.step + ", " + this.intMap.toString() + " )"
         );
+    }
+
+    public static void main(String args[]) throws ClassNotFoundException, DBAppException{
+        RangeWrapper rw = new RangeWrapper(0, null, null, null, null);
+        rw.type = String.class;
+        rw._calculateRange("AAAA", "AAAA");
+        System.out.println(rw.strMap);
+        System.out.println(rw.strMap.ceilingKey("A"));
+
     }
 
 }

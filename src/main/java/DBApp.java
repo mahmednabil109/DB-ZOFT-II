@@ -141,6 +141,8 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void createIndex(String tableName, String[] columnNames) throws DBAppException, ClassNotFoundException {
+       // !D
+       System.out.println("[LOG] Start creating the index");
         Table table = this._getTable(tableName);
         if(table == null){
             System.out.printf("[ERROR] something habbens when openning table %s\n", tableName);

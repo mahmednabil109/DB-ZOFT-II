@@ -7,4 +7,11 @@ public class SQLTerm {
     public SQLTerm() {
     }
 
+    public SQLTerm(String tableName, String columnName, String operator, Object value){
+        this._strTableName = tableName;
+        this._strColumnName = columnName;
+        this._strOperator = operator;
+        this._objValue = value;
+    }
+
 }

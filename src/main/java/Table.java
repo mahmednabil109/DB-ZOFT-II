@@ -315,7 +315,8 @@ class Table implements Serializable {
                 throw new DBAppException();
             }
         }
-
+        
+       
         // check if an index on this columns aleardy exists;
         Set<String> columns = new HashSet<>();
         for (String columnName : columnNames)

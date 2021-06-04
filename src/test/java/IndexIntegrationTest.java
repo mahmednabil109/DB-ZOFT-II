@@ -5,9 +5,11 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 //import main.java.*;
 
@@ -64,6 +66,9 @@ public class IndexIntegrationTest {
     @Test
     @Order(3)
     public void testDataDirectory() throws Exception {
+        DBApp dbApp = new DBApp();
+        dbApp.init();
+
         String dataDirPath = "src/main/resources/data";
         File dataDir = new File(dataDirPath);
 
@@ -73,8 +78,10 @@ public class IndexIntegrationTest {
 
         ArrayList<String> files = new ArrayList<>();
         try {
-            files = Files.walk(Paths.get(dataDirPath)).map(f -> f.toAbsolutePath().toString())
-                    .filter(p -> !Files.isDirectory(Paths.get(p))).collect(Collectors.toCollection(ArrayList::new));
+            files = Files.walk(Paths.get(dataDirPath))
+                    .map(f -> f.toAbsolutePath().toString())
+                    .filter(p -> !Files.isDirectory(Paths.get(p)))
+                    .collect(Collectors.toCollection(ArrayList::new));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -86,11 +93,13 @@ public class IndexIntegrationTest {
 
     @Test
     @Order(4)
-    public void testTableCreation() throws Exception {
+    public void testTableCreationIfNot() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
 
+        System.out.println("[LOG] Creating Table Students");
         createStudentTable(dbApp);
+        System.out.println("[LOG] Done Creating Table Students");
         // createCoursesTable(dbApp);
         // createTranscriptsTable(dbApp);
         // createPCsTable(dbApp);
@@ -105,7 +114,9 @@ public class IndexIntegrationTest {
         dbApp.init();
         int limit = 500;
 
+        System.out.println("[LOG] Inserting into Table Students");
         insertStudentRecords(dbApp, limit);
+        System.out.println("[LOG] Done Inserting into Table Students");
         // insertCoursesRecords(dbApp, limit);
         // insertTranscriptsRecords(dbApp, limit);
         // insertPCsRecords(dbApp, limit);
@@ -113,42 +124,199 @@ public class IndexIntegrationTest {
     }
 
     @Test
+    @Order(6)
     public void createIndexes() throws Exception {
-        DBApp dbApp = new DBApp();
+        final DBApp dbApp = new DBApp();
         dbApp.init();
 
         Table table = dbApp._getTable("students");
         Assertions.assertNotNull(table);
 
+        // Index 1
+        System.out.println("[LOG] Creating the first Index");
         Assertions.assertDoesNotThrow(
             () -> dbApp.createIndex(
                 "students", 
                 new String[] { "id", "first_name" }
             )
         );
+        System.out.println("[LOG] Done Creating the first Index");
 
+        // Index 2
+        System.out.println("[LOG] Creating the second Index");
         Assertions.assertDoesNotThrow(
-                () -> dbApp.createIndex(
-                    "students", 
-                    new String[] { "first_name", "last_name", "dob" }
-                )
+            () -> dbApp.createIndex(
+                "students", 
+                new String[] { "first_name", "last_name", "dob" }
+            )
         );
+        System.out.println("[LOG] Done Creating the second Index");
 
+        // Index 3
+        System.out.println("[LOG] Creating the third Index");
         Assertions.assertDoesNotThrow(() -> 
             dbApp.createIndex(
                 "students", 
                 new String[]{ "first_name", "last_name"}
             )
         );
+        System.out.println("[LOG] Done Creating the third Index");
 
+        // Index 4
+        System.out.println("[LOG] Creating the fourth Index");
         Assertions.assertDoesNotThrow(() ->
             dbApp.createIndex(
                 "students", 
+                new String[]{ "id", "gpa"}    
+            )
+        );
+        System.out.println("[LOG] Done Creating the fourth Index");
+
+        // Wrong columnName
+        Assertions.assertThrows(DBAppException.class,  () ->
+            dbApp.createIndex(
+                "students", 
                 new String[]{ "id", "age"}    
-            );
+            )
+        );
+        System.out.println("[LOG] Done Testing the Wrong Index");
+
+        Hashtable<Set<String>, Index> indexes = table.indexes;
+        int indexesSize = indexes.size();
+
+        // Test the number of the indexes
+        Assertions.assertEquals(4, indexesSize);
+
+        // Test existance of the indexes
+        Assertions.assertNotNull(
+            indexes.get(
+                Arrays.asList(
+                    new String[] { "id", "first_name" }
+                ).stream().collect(Collectors.toSet())
+            )
+        );
+        System.out.println("[LOG] Done Getting the first Index");
+
+        Assertions.assertNotNull(
+            indexes.get(
+                Arrays.asList(
+                    new String[] { "first_name", "last_name", "dob" }
+                ).stream().collect(Collectors.toSet())
+            )
+        );
+        System.out.println("[LOG] Done Getting the second Index");
+
+        Assertions.assertNotNull(
+            indexes.get(
+                Arrays.asList(
+                    new String[]{ "first_name", "last_name"}
+                ).stream().collect(Collectors.toSet())
+            )
+        );
+        System.out.println("[LOG] Done Getting the third Index");
+
+        Assertions.assertNotNull(
+            indexes.get(
+                Arrays.asList(
+                    new String[] { "id", "gpa" }
+                ).stream().collect(Collectors.toSet())
+            )
+        );
+        System.out.println("[LOG] Done Getting the fourth Index");
+    }
+
+    @Test
+    @Order(7)
+    public void printRnages() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("students");
+        Hashtable<Set<String>, Index> indexes = table.indexes;
+
+        for(Index entries : indexes.values())
+            System.out.printf("[LOG] indexe range values %s\n", entries.toString());
+        
+    }
+
+    @Test
+    @Order(8)
+    public void execQueries() throws IOException{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students",
+            "id",
+            "<",
+            "44-1010"
         );
 
+        SQLTerm t2 = new SQLTerm(
+            "students",
+            "gpa",
+            ">",
+            new Double(10.1)
+        );
+
+        SQLTerm t3 = new SQLTerm(
+            "students",
+            "dob",
+            ">=",
+            new Date(2018, 5, 23)
+
+        );
+
+        SQLTerm t4 = new SQLTerm(
+            "students",
+            "first_name",
+            ">",
+            "ahmed"
+        );
+
+        SQLTerm [] sqlTerms1 = { t1, t2, t3, t4 };
+        String [] operators1 = { "or", "or", "and" };
+
+        SQLTerm [] sqlTerms2 = { t2, t3, t1, t4 };
+        String [] operators2 = { "or", "and", "and" };
+
+        SQLTerm [] sqlTerms3 = { t4, t2, t3, t1 };
+        String [] operators3 = { "or", "or", "or" };
+
+        SQLTerm [] sqlTerms4 = { t3, t4, t2, t1 };
+        String [] operators4 = { "and", "and", "and" };
+
+        // TODO reviste and log from the doingAll (AND | XOR | OR) & bestIndex Selection
+        System.out.println("[LOG] Testing the first Query");
+        Assertions.assertDoesNotThrow(() -> 
+            dbApp.selectFromTable(sqlTerms1, operators1)
+        );
+        System.out.println("[LOG] Done Testing the first Query");
+
+
+        System.out.println("[LOG] Testing second Query");
+        Assertions.assertDoesNotThrow(() -> 
+            dbApp.selectFromTable(sqlTerms2, operators2)
+        );
+        System.out.println("[LOG] Done Testing the second Query");
+
+        System.out.println("[LOG] Testing third Query");
+        Assertions.assertDoesNotThrow(() -> 
+            dbApp.selectFromTable(sqlTerms2, operators2)
+        );
+        System.out.println("[LOG] Done Testing the third Query");
+
+        System.out.println("[LOG] Testing fourth Query");
+        Assertions.assertDoesNotThrow(() -> 
+            dbApp.selectFromTable(sqlTerms2, operators2)
+        );
+        System.out.println("[LOG] Done Testing fourth Query");
+
     }
+
+
+    // TODO validate the returned data 
+
 
     private void insertStudentRecords(DBApp dbApp, int limit) throws Exception {
         BufferedReader studentsTable = new BufferedReader(new FileReader("src/main/resources/students_table.csv"));
