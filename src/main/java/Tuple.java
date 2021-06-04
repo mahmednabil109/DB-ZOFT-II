@@ -1,7 +1,10 @@
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-class Tuple implements Comparable<Tuple>, Serializable {
+class Tuple extends Observable implements Comparable<Tuple>, Serializable {
 
     // the name of the primaryKey to compare based on it
     String primaryKeyName;
@@ -47,5 +50,21 @@ class Tuple implements Comparable<Tuple>, Serializable {
                 tupleString.append(" " + entries.getValue() + " ");        
         }
         return tupleString.toString();
+    }
+
+    public void change(int pagePos, int tuplePos){
+        setChanged();
+        notifyObservers(
+            IntStream.of(pagePos, tuplePos).
+            boxed().
+            collect(Collectors.toCollection(Vector::new))
+        );
+    }
+
+    public void delete(){
+        setChanged();
+        notifyObservers(
+           null
+        );
     }
 }

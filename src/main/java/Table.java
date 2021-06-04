@@ -19,12 +19,10 @@ class Table implements Serializable {
     Hashtable<String, String> htbColumnsNameType, htbColumnsMin, htbColumnsMax;
     // vector that holds the references "names" of the pages on the desk
     Vector<Page> buckets;
-    // htb  that holds all the indexes
+    // htb that holds all the indexes
     Hashtable<Set<String>, Index> indexes;
     // path to the pages folder
-    private String pathToPages;
-
-    // hashcode to store the hashcode at the creatation
+    private String pathToPages, pathToIndexes;
     // becuase java says why not to change it
     private String HASHCODE;
     // hold the space utlization
@@ -52,6 +50,7 @@ class Table implements Serializable {
         // initalize the Folder for the pages
         try {
             this.pathToPages = Paths.get(Resources.getResourcePath(), "data", this.name).toString();
+            this.pathToIndexes = Paths.get(Resources.getResourcePath(), "data", this.name, ".indexes").toString();
         } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
             System.out.println("[ERROR] something wrong habben when trying to read the resources location");
@@ -63,7 +62,8 @@ class Table implements Serializable {
             throw new DBAppException();
         } else {
             try {
-                Files.createDirectories(Paths.get(pathToPages));
+                Files.createDirectories(Paths.get(this.pathToPages));
+                Files.createDirectories(Paths.get(this.pathToIndexes));
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("[ERROR] something wrong habben when trying to make the directory for the pages");
@@ -78,9 +78,13 @@ class Table implements Serializable {
 
     }
 
-    public String getPathToPages(){
+    public String getPathToPages() {
         return this.pathToPages;
-    } 
+    }
+
+    public String getPathToIndexes() {
+        return this.pathToIndexes;
+    }
 
     public void insert(Hashtable<String, Object> colNameValue) throws DBAppException {
 
@@ -88,9 +92,11 @@ class Table implements Serializable {
 
         Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
         int pageIndex = this._searchPages(tuple);
-        // System.out.printf("[LOG] inserting %s in page %d\n", tuple.toString(), pageIndex);
+        // System.out.printf("[LOG] inserting %s in page %d\n", tuple.toString(),
+        // pageIndex);
 
-        while (pageIndex < this.buckets.size() && ((Comparable) buckets.get(pageIndex).min).compareTo(tuple.get(this.primaryKeyName)) <= 0){
+        while (pageIndex < this.buckets.size()
+                && ((Comparable) buckets.get(pageIndex).min).compareTo(tuple.get(this.primaryKeyName)) <= 0) {
             pageIndex++;
         }
 
@@ -116,7 +122,7 @@ class Table implements Serializable {
                 nxtPage.insert(tuple, false);
                 page.saveAndFree();
                 nxtPage.saveAndFree();
-            }else if(pageIndex != 0 && buckets.get(pageIndex - 1).size() < DBApp.maxPerPage){
+            } else if (pageIndex != 0 && buckets.get(pageIndex - 1).size() < DBApp.maxPerPage) {
                 Page prevPage = buckets.get(pageIndex - 1);
                 prevPage.load();
                 page.load();
@@ -125,7 +131,7 @@ class Table implements Serializable {
                 prevPage.insert(tuple, false);
                 page.saveAndFree();
                 prevPage.saveAndFree();
-            }else{
+            } else {
                 Page nxtPage = new Page(pathToPages);
                 page.load();
                 Vector<Tuple> newData = page.insertAndSplit(tuple);
@@ -192,7 +198,7 @@ class Table implements Serializable {
                     || ((Comparable) buckets.firstElement().min).compareTo(pk) > 0)
                 return;
             int i = this._searchPages(tuple);
-           
+
             while (i < this.buckets.size() && ((Comparable) buckets.get(i).min).compareTo(pk) <= 0) {
                 System.out.printf("[LOG] the Page is Found for %s an it's is the %s\n", pk, i);
                 System.out.println("[LOG] updating the page\n");
@@ -208,6 +214,41 @@ class Table implements Serializable {
             throw new DBAppException();
         }
         this._saveChanges();
+    }
+
+    public HashSet<Tuple> search(Vector<SQLTerm> searchTerms) {
+        return new HashSet<Tuple>();
+    }
+
+    public Vector<Object> getBestIndex(Vector<SQLTerm> sqlTerms) {
+        HashSet<String> Columns = new HashSet<String>();
+        for (SQLTerm sqlTerm : sqlTerms) {
+            Columns.add(sqlTerm._strColumnName);
+        }
+        HashSet<String> mostSet = new HashSet<String>();
+        Set<String> keySet = new HashSet<String>();
+        Vector<Object> v = new Vector<Object>();
+        for (Set<String> sets : this.indexes.keySet()) {
+            HashSet<String> c = retainAll(sets, Columns);
+            if (c.size() > mostSet.size() || (c.size() == mostSet.size() && keySet.size() > sets.size())) {
+                v = new Vector<>();
+                keySet = sets;
+                mostSet = c;
+                v.add(indexes.get(sets));
+                v.add(c);
+            }
+        }
+        return v;
+    }
+
+    public static HashSet<String> retainAll(Set<String> sets, HashSet<String> Columns) {
+        HashSet<String> result = new HashSet<String>();
+        for (String o : sets) {
+            if (Columns.contains(o)) {
+                result.add(o);
+            }
+        }
+        return result;
     }
 
     public void delete(Hashtable<String, Object> columnNameVlaue) throws DBAppException {
@@ -235,13 +276,13 @@ class Table implements Serializable {
         for (Map.Entry<Page, Vector<Integer>> entries : rows.entrySet()) {
             Page page = entries.getKey();
             Vector<Integer> indexes = entries.getValue();
-            
+
             Collections.sort(indexes);
             Collections.reverse(indexes);
-            
+
             page.load();
 
-            for (Integer i : indexes){
+            for (Integer i : indexes) {
                 page.remove(i.intValue());
                 this.size--;
             }
@@ -266,45 +307,44 @@ class Table implements Serializable {
         this._saveChanges();
     }
 
-    public void createIndex(String[] columnNames) throws DBAppException, ClassNotFoundException{
+    public void createIndex(String[] columnNames) throws DBAppException, ClassNotFoundException {
         // checking if the columns exists
-        for(String columnName : columnNames){
-            if(!this.htbColumnsNameType.keySet().contains(columnName)){
+        for (String columnName : columnNames) {
+            if (!this.htbColumnsNameType.keySet().contains(columnName)) {
                 System.out.printf("[ERROR] column named %s dose not exists in table %s", columnName, this.name);
                 throw new DBAppException();
             }
         }
 
-        //check if an index on this columns aleardy exists;
+        // check if an index on this columns aleardy exists;
         Set<String> columns = new HashSet<>();
-        for(String columnName : columnNames)
+        for (String columnName : columnNames)
             columns.add(columnName);
-        for(Set<String> existsColumns : this.indexes.keySet())
-            if(existsColumns.equals(columns)){
+        for (Set<String> existsColumns : this.indexes.keySet())
+            if (existsColumns.equals(columns)) {
                 System.out.printf("[WARNING] this index is already exists");
                 return;
             }
 
         // creating and adding the index to the table
-        this.indexes.put(
-            columns,
-            new Index(this, columnNames, this.htbColumnsNameType, this.htbColumnsMin, this.htbColumnsMax)
-        );
+        this.indexes.put(columns,
+                new Index(this, columnNames, this.htbColumnsNameType, this.htbColumnsMin, this.htbColumnsMax));
+
+        this._saveChanges();
 
     }
 
     // [DEBUG] function to print all the content of the pages
-    public void printAll(){
-        for(Page page : buckets){
+    public void printAll() {
+        for (Page page : buckets) {
             System.out.println(page.getPageName());
             System.out.println("===================");
             page.load();
-            for(Tuple tuple : page.data)
+            for (Tuple tuple : page.data)
                 System.out.printf("[PK] %s\n", tuple.toString());
             page.free();
         }
     }
-
 
     // gets the rows by matching all the columnNameValues
     private Hashtable<Page, Vector<Integer>> _searchRows(Hashtable<String, Object> columnNameVlaue) {
@@ -364,7 +404,7 @@ class Table implements Serializable {
         if (!file.delete()) {
             System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
             throw new DBAppException();
-        }else{
+        } else {
             this.size -= page.size();
         }
     }
@@ -417,7 +457,8 @@ class Table implements Serializable {
                     String string = (String) value;
                     if (!(string.compareTo(min) >= 0 && string.compareTo(max) <= 0)) {
                         System.out.printf("%s %s \n", this.htbColumnsNameType.get(key), key);
-                        System.out.printf("[ERROR] table %s, the values dose not respect the min/max constrain [%s | %s] -> %s",
+                        System.out.printf(
+                                "[ERROR] table %s, the values dose not respect the min/max constrain [%s | %s] -> %s",
                                 this.name, min, max, string);
                         throw new DBAppException();
                     }
@@ -509,31 +550,27 @@ class Table implements Serializable {
         }
     }
 
-    private void _updateMetaData(){
+    private void _updateMetaData() {
         try {
             Path p = Paths.get(Resources.getResourcePath(), "metadata.csv");
-            if(Files.exists(p)){
-               StringBuilder oldData = new StringBuilder(new String(Files.readAllBytes(p)));
-               StringBuilder added = new StringBuilder("");
-               for(Map.Entry<String, String> columns : this.htbColumnsNameType.entrySet()){
-                    added.append(
-                        this.name + "," + columns.getKey() + ","  + columns.getValue() + ","
-                        + columns.getKey().equals(this.primaryKeyName) + "," + "False" + ","
-                    );
+            if (Files.exists(p)) {
+                StringBuilder oldData = new StringBuilder(new String(Files.readAllBytes(p)));
+                StringBuilder added = new StringBuilder("");
+                for (Map.Entry<String, String> columns : this.htbColumnsNameType.entrySet()) {
+                    added.append(this.name + "," + columns.getKey() + "," + columns.getValue() + ","
+                            + columns.getKey().equals(this.primaryKeyName) + "," + "False" + ",");
 
-                    if(this.htbColumnsNameType.get(columns.getKey()).equals("java.lang.String"))
-                        added.append(
-                            "\"" + this.htbColumnsMin.get(columns.getKey()) + "\",\"" + this.htbColumnsMax.get(columns.getKey()) + "\"\n"
-                        );
+                    if (this.htbColumnsNameType.get(columns.getKey()).equals("java.lang.String"))
+                        added.append("\"" + this.htbColumnsMin.get(columns.getKey()) + "\",\""
+                                + this.htbColumnsMax.get(columns.getKey()) + "\"\n");
                     else
-                        added.append(
-                            this.htbColumnsMin.get(columns.getKey()) + "," + this.htbColumnsMax.get(columns.getKey()) + "\n"
-                        );
-               }
-               oldData.append(added);
-               Files.write(p, oldData.toString().getBytes());
-            //    System.out.println("done updateing the metadata");
-            }else{
+                        added.append(this.htbColumnsMin.get(columns.getKey()) + ","
+                                + this.htbColumnsMax.get(columns.getKey()) + "\n");
+                }
+                oldData.append(added);
+                Files.write(p, oldData.toString().getBytes());
+                // System.out.println("done updateing the metadata");
+            } else {
                 System.out.println("[ERROR] the metadata file does not exists");
             }
         } catch (IOException | URISyntaxException e) {

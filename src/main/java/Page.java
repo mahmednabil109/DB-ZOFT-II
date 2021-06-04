@@ -137,6 +137,7 @@ class Page implements Serializable {
 
     public Tuple remove(int index) {
         Tuple tuple = this.data.remove(index);
+        tuple.delete();
         this._updateCachedValues();
         return tuple;
     }

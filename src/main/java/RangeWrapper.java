@@ -33,12 +33,13 @@ public class RangeWrapper implements Serializable{
         this._calculateRange(columnMin, columnMax);
     }
 
-    // TODO check the  get parameter type
     public int getPos(Object value) throws DBAppException{
         
         long intVal = 0;
         if(this.type.equals(String.class)){
-            return strMap.get(strMap.ceilingKey((String) value));
+            String key = strMap.ceilingKey((String) value);
+            if(key == null) return -1;
+            return strMap.get(key);
         }else if(type.equals(Date.class)){
             intVal = ((Date) value).getTime();
         }else if(type.equals(Integer.class)){
@@ -46,8 +47,9 @@ public class RangeWrapper implements Serializable{
         }else if(type.equals(Double.class)){
             intVal = (long) Math.ceil((Double)(value));
         }
-
-        return (int) (intMap.get(intMap.ceilingKey(intVal)).intValue());
+        Long res = intMap.ceilingKey(intVal);
+        if(res == null) return -1;
+        return (int) (intMap.get(res).intValue());
     }
 
     private void _handleSpecialString(String min, String max){
@@ -231,6 +233,14 @@ public class RangeWrapper implements Serializable{
             throw new DBAppException();
         }
         return result;
+    }
+
+    public String toString(){
+        return (
+            (this.type.equals(String.class)) ? 
+            "( " + this.size + ", " + this.step + ", " + this.strMap.toString() + " )" :
+            "( " + this.size + ", " + this.step + ", " + this.intMap.toString() + " )"
+        );
     }
 
 }
