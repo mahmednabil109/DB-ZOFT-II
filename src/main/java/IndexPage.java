@@ -44,14 +44,14 @@ public class IndexPage implements Serializable{
             this.overflowPage = new IndexPage(this.context, this.index, this.posInIndex, this.pathToPages);
             this.overflowPage.load();
             String hash = this.overflowPage.insert(tp);
-            System.out.println("A: " + this.posInIndex + " ," + hash);
+            // System.out.println("A: " + this.posInIndex + " ," + hash);
             this.overflowPage.saveAndFree();
             return hash;
         }else{
             this.data.add(tp);
             tp.setParent(this);
         }
-        System.out.println("A: " + this.posInIndex + " ," + this.pageHash);
+        // System.out.println("A: " + this.posInIndex + " ," + this.pageHash);
 
         return this.pageHash;
     }

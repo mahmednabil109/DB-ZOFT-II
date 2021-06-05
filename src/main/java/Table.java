@@ -142,6 +142,7 @@ class Table implements Serializable {
                 for (Set<String> indSet : Index) {
                     Index ind = indexes.get(indSet);
                     Vector<Object> res = ind.add(tuple, tp);
+                    // System.out.println("IN: " + (int) res.get(1) + " ," + (String) res.get(2));
                     Vector<Object> reslt = new Vector<>();
                     reslt.add(res);
                     reslt.add(indSet);

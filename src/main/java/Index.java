@@ -67,7 +67,7 @@ public class Index implements Serializable {
             iPage.load();
             hash = iPage.insert(tp);
             posInPage = iPage.indexOf(hash, tp);
-            System.out.println("A: " + posInIndex + " ," + hash);
+            // System.out.println("A: " + posInIndex + " ," + hash);
             iPage.saveAndFree();
         }
         Vector<Object> place = new Vector<>();
@@ -197,7 +197,7 @@ public class Index implements Serializable {
                     map(p -> this._calcPos(pos.get(p))).
                     toArray();
         // !D
-        System.out.println(Arrays.toString(res));
+        // System.out.println(Arrays.toString(res));
 
         return res;
     }
@@ -304,7 +304,7 @@ public class Index implements Serializable {
         columns.add("id");
         columns.add("age");
         Index index = table.indexes.get(columns);
-        System.out.println(index.dimentions);
+        // System.out.println(index.dimentions);
 
 
         // create sqltrem and test it
@@ -331,7 +331,7 @@ public class Index implements Serializable {
         vst.add(st2);
         vst.add(st3);
 
-        System.out.println(index.search(vst));
+        // System.out.println(index.search(vst));
 
     }
 
@@ -370,7 +370,7 @@ public class Index implements Serializable {
             iPage = new IndexPage(this.context, this, placeInIndex, this.context.getPathToIndexes());
             System.out.println("DE7K");
         }
-        System.out.println("D: " + placeInIndex + " ," + hash);
+        // System.out.println("D: " + placeInIndex + " ," + hash);
         iPage.load();
         TuplePointer tp = iPage.get(hash, placeInPage);
         tp.tuplePos = TuplePos;

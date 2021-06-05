@@ -42,7 +42,7 @@ public class RangeWrapper implements Serializable{
         
         long intVal = 0;
         //!D
-        System.out.printf("[LOG] value of the parameter is %s and the type is %s and the column is %s\n", value.getClass(), type.getName(), this.columnName);
+        // System.out.printf("[LOG] value of the parameter is %s and the type is %s and the column is %s\n", value.getClass(), type.getName(), this.columnName);
         if(this.type.equals(String.class)){
             String key = strMap.ceilingKey((String) value);
             if(key == null) return -1;

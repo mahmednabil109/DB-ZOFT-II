@@ -3,6 +3,7 @@
 - [X] handle overflowPages with IndexPages
 - [X] handle deletion of the IndexPage file in the disk
 - [X] test old testcases for milestone 1.
+- [ ] refactor code to handle update and search
 - [ ] adding the validation to the index.
 - [ ] decide for the null values and the index
 - [ ] handle the empty query.

@@ -356,7 +356,7 @@ public class DBApp implements DBAppInterface {
         Vector<SQLTerm> searchTerms = new Vector<SQLTerm>();
         int firstAndIndex = getNextAnd(allPost, 0);
         int nextAnd = getNextAnd(allPost, firstAndIndex), currentAnd = 0;
-        System.out.println(firstAndIndex);
+        // System.out.println(firstAndIndex);
         while (firstAndIndex != currentAnd) {
             Vector<HashSet<Tuple>> results = new Vector<HashSet<Tuple>>();
             currentAnd = firstAndIndex;
@@ -467,7 +467,6 @@ public class DBApp implements DBAppInterface {
             if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase().equals("and"))
                 return i;
         }
-        System.out.println("in");
         return index;
     }
 
