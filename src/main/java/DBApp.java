@@ -17,7 +17,7 @@ import java.nio.file.*;
 public class DBApp implements DBAppInterface {
 
     // GLOBAL OPTIONS FOR THE DB
-    public static boolean ALLOW_DUBLICATES = false;
+    public static boolean ALLOW_DUBLICATES = true;
     // vector to hold table objects
     private Vector<Table> tables;
     // path to realtions folder
@@ -141,12 +141,12 @@ public class DBApp implements DBAppInterface {
 
     @Override
     public void createIndex(String tableName, String[] columnNames) throws DBAppException, ClassNotFoundException {
-       // !D
-       System.out.println("[LOG] Start creating the index");
+        // !D
+        System.out.println("[LOG] Start creating the index");
         Table table = this._getTable(tableName);
-        if(table == null){
+        if (table == null) {
             System.out.printf("[ERROR] something habbens when openning table %s\n", tableName);
-            throw  new DBAppException();
+            throw new DBAppException();
         }
         table.createIndex(columnNames);
     }
@@ -158,12 +158,27 @@ public class DBApp implements DBAppInterface {
             System.out.printf("[ERROR] something habbens when openning table %s\n", sqlTerms[0]._strTableName);
             throw new DBAppException();
         }
-        Object[] all = mergeStatement(sqlTerms, arrayOperators);
-        Vector<Object> allPost = convertToPost(all);
-        allPost = doingAllAnd(allPost, table);
-        allPost = doingAllOr(allPost, table);
-        allPost = doingAllXor(allPost, table);
-        return ((HashSet<Tuple>) allPost.get(0)).iterator();
+        if(sqlTerms.length!=1){
+            Object[] all = mergeStatement(sqlTerms, arrayOperators);
+            Vector<Object> allPost = convertToPost(all);
+            allPost = doingAllAnd(allPost, table);
+            allPost = doingAllOr(allPost, table);
+            allPost = doingAllXor(allPost, table);
+            System.out.println("ALLPOST: " + allPost);
+            return ((HashSet<Tuple>) allPost.get(0)).iterator();
+        }
+        else{
+            Vector<SQLTerm> sqlTerm=new Vector<>();
+            sqlTerm.add(sqlTerms[0]);
+            Vector<Object> result=table.getBestIndex(sqlTerm);
+            if(result.size()!=0){
+                Index index=(Index) result.get(0);
+                return index.search(sqlTerm).iterator();
+            }
+            else{
+                return table.search(sqlTerm).iterator();
+            }
+        }
     }
 
     public static Object[] mergeStatement(SQLTerm[] sqlTerms, String[] arrayOperators) {
@@ -263,6 +278,7 @@ public class DBApp implements DBAppInterface {
             if (results.size() != 0)
                 allPost.add(firstOrIndex - 2, results.get(0));
             firstOrIndex = getNextOr(allPost, firstOrIndex);
+            currentOr = getNextAnd(allPost, firstOrIndex);
             nextOr = getNextOr(allPost, firstOrIndex);
         }
         return allPost;
@@ -327,6 +343,7 @@ public class DBApp implements DBAppInterface {
             if (results.size() != 0)
                 allPost.add(firstXorIndex - 2, results.get(0));
             firstXorIndex = getNextXor(allPost, firstXorIndex);
+            currentXor = getNextAnd(allPost, firstXorIndex);
             nextXor = getNextXor(allPost, firstXorIndex);
         }
         return allPost;
@@ -336,18 +353,21 @@ public class DBApp implements DBAppInterface {
         Vector<SQLTerm> searchTerms = new Vector<SQLTerm>();
         int firstAndIndex = getNextAnd(allPost, 0);
         int nextAnd = getNextAnd(allPost, firstAndIndex), currentAnd = 0;
+        System.out.println(firstAndIndex);
         while (firstAndIndex != currentAnd) {
             Vector<HashSet<Tuple>> results = new Vector<HashSet<Tuple>>();
             currentAnd = firstAndIndex;
             if (firstAndIndex != 0) {
                 if (allPost.get(firstAndIndex - 2) instanceof SQLTerm) {
                     searchTerms.add((SQLTerm) allPost.get(firstAndIndex - 2));
+                    // System.out.println(searchTerms);
                 } else {
                     results.add((HashSet<Tuple>) allPost.get(firstAndIndex - 2));
                 }
                 if (allPost.get(firstAndIndex - 1) instanceof SQLTerm) {
                     searchTerms.add((SQLTerm) allPost.get(firstAndIndex - 1));
                 } else {
+                    System.out.println("allpost: " + allPost);
                     results.add((HashSet<Tuple>) allPost.get(firstAndIndex - 1));
                 }
             }
@@ -391,6 +411,7 @@ public class DBApp implements DBAppInterface {
             if (results.size() != 0)
                 allPost.add(firstAndIndex - 2, results.get(0));
             firstAndIndex = getNextAnd(allPost, firstAndIndex);
+            currentAnd = getNextAnd(allPost, firstAndIndex);
             nextAnd = getNextAnd(allPost, firstAndIndex);
         }
         return allPost;
@@ -440,15 +461,16 @@ public class DBApp implements DBAppInterface {
 
     public static int getNextAnd(Vector<Object> allPost, int index) {
         for (int i = index + 1; i < allPost.size(); i++) {
-            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase() == "and")
+            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase().equals("and"))
                 return i;
         }
+        System.out.println("in");
         return index;
     }
 
     public static int getNextOr(Vector<Object> allPost, int index) {
         for (int i = index + 1; i < allPost.size(); i++) {
-            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase() == "or")
+            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase().equals("or"))
                 return i;
         }
         return index;
@@ -456,7 +478,7 @@ public class DBApp implements DBAppInterface {
 
     public static int getNextXor(Vector<Object> allPost, int index) {
         for (int i = index + 1; i < allPost.size(); i++) {
-            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase() == "xor")
+            if (allPost.get(i) instanceof String && ((String) allPost.get(i)).toLowerCase().equals("xor"))
                 return i;
         }
         return index;

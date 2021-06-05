@@ -1,4 +1,6 @@
+import java.io.File;
 import java.io.Serializable;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -7,7 +9,7 @@ public class Index implements Serializable {
 
     private Table context;
     private String[] columns;
-    private Hashtable<String, RangeWrapper> dimentions;
+    Hashtable<String, RangeWrapper> dimentions;
     // linear Vector to simulate the
     Vector<IndexPage> data;
 
@@ -38,14 +40,22 @@ public class Index implements Serializable {
         this._fill();
     }
 
-    public void add(Tuple t, TuplePointer tp) throws DBAppException{
+    public Vector<Integer> add(Tuple t, TuplePointer tp) throws DBAppException{
         // guaranted to be array of one element as _formateArga will form an exeact value query
+        int posInPage = 0;
+        int posInIndex = 0;
         for(int pos : this._getPositions(this._formateArgs(t))){
-           IndexPage iPage = this.data.get(pos);
-           iPage.load();
-           iPage.insert(tp);
-           iPage.saveAndFree();
+            posInIndex = pos;
+            IndexPage iPage = this.data.get(pos);
+            iPage.load();
+            iPage.insert(tp);
+            posInPage = iPage.indexOf(tp);
+            iPage.saveAndFree();
         }
+        Vector<Integer> place = new Vector<>();
+        place.add(posInPage);
+        place.add(posInIndex);
+        return place;
     }
 
     private void _fill() throws DBAppException {
@@ -60,7 +70,7 @@ public class Index implements Serializable {
                 // TODO add other methods in both tupe & tuplePointer to handle update and delete
                 // TODO we could use SUB/PUB pattern
                 Tuple tuple = tPage.data.get(j);
-                TuplePointer tp = new TuplePointer(i, j);
+                TuplePointer tp = new TuplePointer(tPage.getPageName(), j);
                 for(int pos : this._getPositions(this._formateArgs(tuple))){
                     Vector<TuplePointer> _tmp = (pagePack.containsKey(pos) ? pagePack.get(pos) : new Vector<>());
                     _tmp.add(tp);
@@ -72,7 +82,7 @@ public class Index implements Serializable {
         
         // write the data to the pages and save them
         for(Map.Entry<Integer, Vector<TuplePointer>> entries : pagePack.entrySet()){
-            IndexPage iPage = new IndexPage(this.context, this.context.getPathToIndexes());
+            IndexPage iPage = new IndexPage(this.context, this, entries.getKey(), this.context.getPathToIndexes());
             iPage.load();
             for(TuplePointer tp : entries.getValue())
                 iPage.insert(tp);
@@ -167,7 +177,7 @@ public class Index implements Serializable {
                     map(p -> this._calcPos(pos.get(p))).
                     toArray();
         // !D
-        // System.out.println(Arrays.toString(res));
+        System.out.println(Arrays.toString(res));
 
         return res;
     }
@@ -195,6 +205,8 @@ public class Index implements Serializable {
                                     collect(
                                         Collectors.toCollection(Vector::new)
                                     );
+        // !D
+        System.out.printf("[LOG] this is the pos %s\n", pages.toString());
         
         // get the needed tuples after evaluating the tuple pointers
         for(IndexPage iPage : pages){
@@ -301,5 +313,49 @@ public class Index implements Serializable {
 
         System.out.println(index.search(vst));
 
+    }
+
+    public void drop() throws DBAppException{
+        for(IndexPage iPage:data){
+            this._delete(iPage);
+        }
+    }
+    
+    public void _delete(IndexPage page) throws DBAppException {
+        File file = new File(Paths.get(page.getPathToPage(), page.getPageName()).toString());
+        if (!file.delete()) {
+            System.out.printf("[ERROR] not able to delete page <%s>\n", page.getPageName());
+            throw new DBAppException();
+        }
+    }
+
+    // public void updateSplit(Vector<Integer> tuplePointerPlace,int TuplePos) {
+    //     int placeInIndex=tuplePointerPlace.get(1);
+    //     int placeInPage=tuplePointerPlace.get(0);
+    //     IndexPage iPage=data.get(placeInIndex);
+    //     iPage.load();
+    //     TuplePointer tp = iPage.get(placeInPage);
+    //     tp.pagePos = tp.pagePos + 1;
+    //     tp.tuplePos=TuplePos;
+    //     iPage.saveAndFree();
+    // }
+
+    public void update(Vector<Integer> tuplePointerPlace,int TuplePos) {
+        int placeInIndex = tuplePointerPlace.get(1);
+        int placeInPage = tuplePointerPlace.get(0);
+        IndexPage iPage = data.get(placeInIndex);
+        iPage.load();
+        TuplePointer tp = iPage.get(placeInPage);
+        tp.tuplePos = TuplePos;
+        iPage.saveAndFree();
+    }
+
+    public void delete(Vector<Integer> place) throws DBAppException {
+        int placeInIndex = place.get(1);
+        int placeInPage = place.get(0);
+        IndexPage iPage = data.get(placeInIndex);
+        iPage.load();
+        iPage.remove(placeInPage);
+        iPage.saveAndFree();
     }
 }

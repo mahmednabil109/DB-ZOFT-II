@@ -1,5 +1,5 @@
-students,gpa,java.lang.Double,false,False,0.7,5.0
-students,last_name,java.lang.String,false,False,"AAAAAA","zzzzzz"
-students,first_name,java.lang.String,false,False,"AAAAAA","zzzzzz"
-students,dob,java.util.Date,false,False,1990-01-01,2000-12-31
-students,id,java.lang.String,true,False,"43-0000","99-9999"
+students,gpa,java.lang.Double,false,false,0.7,5.0
+students,last_name,java.lang.String,false,false,"AAAAAA","zzzzzz"
+students,first_name,java.lang.String,false,false,"AAAAAA","zzzzzz"
+students,dob,java.util.Date,false,false,1990-01-01,2000-12-31
+students,id,java.lang.String,true,false,"43-0000","99-9999"

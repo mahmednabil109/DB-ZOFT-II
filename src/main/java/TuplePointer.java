@@ -1,12 +1,12 @@
 import java.io.Serializable;
-import java.util.*;
 
-public class TuplePointer implements Serializable, Observer{
-    int pagePos, tuplePos;
+public class TuplePointer implements Serializable{
+    String pageHash; 
+    int tuplePos;
     IndexPage parent;
 
-    public TuplePointer(int pagePos, int tuplePos){
-        this.pagePos = pagePos;
+    public TuplePointer(String pagePos, int tuplePos){
+        this.pageHash = pagePos;
         this.tuplePos = tuplePos;
     }
 
@@ -26,17 +26,6 @@ public class TuplePointer implements Serializable, Observer{
     }
 
     public String toString(){
-        return  "( " + this.pagePos + ", " + this.tuplePos + " )"; 
-    }
-
-    @Override
-    public void update(Observable tuple, Object flags) {
-        if(flags == null){
-            this.parent.remove(this);
-        }else{
-            Vector<Integer> pos = (Vector<Integer>) flags;
-            this.pagePos = pos.get(0);
-            this.tuplePos = pos.get(1);
-        }
+        return  "( " + this.pageHash + ", " + this.tuplePos + " )"; 
     }
 }

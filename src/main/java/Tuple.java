@@ -10,10 +10,14 @@ class Tuple extends Observable implements Comparable<Tuple>, Serializable {
     String primaryKeyName;
     // list of obects to store data of the row
     Hashtable<String, Object> data;
+    //save the indexes and the places
+    Vector<Object> placeInIndex;
 
     public Tuple(String primaryKeyName, Hashtable<String, Object> rowData) {
         this.primaryKeyName = primaryKeyName;
         this.data = (Hashtable<String, Object>) rowData.clone();
+        placeInIndex=new Vector<>();
+
     }
 
     Object getPrimeKey() {

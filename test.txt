@@ -2,6 +2,8 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+//TODOS cache the size , min ,  max of data to avoid loading the data every time
+
 // class to hold needed info for each page
 class Page implements Serializable {
 
@@ -74,7 +76,7 @@ class Page implements Serializable {
         return min;
     }
 
-    public Vector<Object> insert(Tuple tuple, boolean next) throws DBAppException {
+    public Tuple insert(Tuple tuple, boolean next) throws DBAppException {
         Tuple res = null;
 
         int index = this._searchTuple(tuple, false);
@@ -89,18 +91,21 @@ class Page implements Serializable {
         }
 
         this._updateCachedValues();
-        Vector<Object> result = new Vector<>();
-        result.add(res);
-        result.add(index);
 
-        return result;
+        // ![DEBUG]
+        // System.out.printf("inserted %s at index %d\n", tuple.toString(), index);
+        // System.out.println("=====================");
+        // for(Tuple t : data)
+        //     System.out.printf("inserted %s\n", t.toString());
+        // System.out.println("=====================");
+
+        return res;
     }
 
-    public Vector<Object> insertAndSplit(Tuple tuple)throws DBAppException {
-        Vector<Object> res = new Vector<>();
-        Vector<Object> TupleIndex =  this.insert(tuple, true);
-        Tuple last = (Tuple) TupleIndex.get(0);
-        int index = (int) TupleIndex.get(1);
+    public Vector<Tuple> insertAndSplit(Tuple tuple)throws DBAppException {
+        
+        Tuple last = this.insert(tuple, true);
+
         Vector<Tuple> result = new Vector<Tuple>();
         int maxPerPage = DBApp.maxPerPage;
         
@@ -110,16 +115,7 @@ class Page implements Serializable {
         result.add(last);
         this._updateCachedValues();
         
-        boolean newPage = false;
-        if(index > maxPerPage/2) {
-        	index = index-maxPerPage/2;
-        	newPage = true;
-        }
-        
-        res.add(result);
-        res.add(newPage);
-        res.add(index);
-        return res;
+        return result;
     }
 
     public void setData(Vector<Tuple> newData) {
@@ -150,11 +146,11 @@ class Page implements Serializable {
 
     public Tuple remove(int index) {
         Tuple tuple = this.data.remove(index);
-        tuple.delete();
         this._updateCachedValues();
         return tuple;
     }
 
+    // TODO uncomment free load save
     public void free() {
         // free the memory occupied be the page in the main memory
         this.data = null;

@@ -131,6 +131,32 @@ public class Milestone1TestUpdateDelete {
 
     @Test
     @Order(6)
+    public void checkDataArrangmentBefore() throws Exception {
+        DBApp dbApp = new DBApp();
+        dbApp.init();
+        Table table = dbApp._getTable("students");
+
+        Vector<String> data = new Vector<String>();
+
+        for (Page page : table.buckets) {
+            Assertions.assertTrue(page.size() <= DBApp.maxPerPage);
+            page.load();
+            for (Tuple t : page.data)
+                data.add((String) t.getPrimeKey());
+            page.free();
+        }
+
+        for (int i = 0; i < data.size() - 1; i++)
+            if (data.get(i).compareTo(data.get(i + 1)) > 0) {
+                System.out.printf("%s !< %s \n", data.get(i), data.get(i + 1));
+                throw new Exception("data is not sorted");
+            }
+        System.out.println(data.size());
+        dbApp = null;
+    }
+
+    @Test
+    @Order(7)
     public void TestQueryReslut() throws NoSuchMethodException, SecurityException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException {
         DBApp dbApp = new DBApp();
@@ -165,7 +191,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     public void TestUpdate() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -198,7 +224,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     public void TestDeleteRows() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -214,7 +240,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     public void testQueryDeletedData() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -250,7 +276,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     public void checkDataArrangment() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -276,7 +302,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     public void testMinMaxPage() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -296,7 +322,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     public void testDeletePages() throws Exception {
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -342,7 +368,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     public void reInsertPages() throws Exception {
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -385,7 +411,7 @@ public class Milestone1TestUpdateDelete {
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     public void checkDataArrangment2() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();

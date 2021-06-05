@@ -5,11 +5,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 public class IndexPage implements Serializable{
@@ -18,9 +15,14 @@ public class IndexPage implements Serializable{
     private String pathToPages;
     private String pageName;
     private Table context;
-    transient private Vector<TuplePointer> data;
+    private Index index;
+    private int posInIndex;
+    transient Vector<TuplePointer> data;
 
-    public IndexPage(Table context, String path){
+    
+    public IndexPage(Table context, Index index, int pos, String path){
+        this.posInIndex = pos;
+        this.index = index;
         this.context = context;
         this.overflowPage = null;
         this.data = new Vector<>();
@@ -29,9 +31,13 @@ public class IndexPage implements Serializable{
         this.save();
     }
 
+    public int indexOf(TuplePointer tp){
+        return data.indexOf(tp);
+    }
+
     public IndexPage insert(TuplePointer tp){
         if(this.data.size() == DBApp.maxPerIndexPage){
-            this.overflowPage = new IndexPage(this.context, this.pathToPages);
+            this.overflowPage = new IndexPage(this.context, this.index, this.posInIndex, this.pathToPages);
             this.overflowPage.load();
             this.overflowPage.insert(tp);
             this.overflowPage.saveAndFree();
@@ -42,26 +48,37 @@ public class IndexPage implements Serializable{
         return this;
     }
 
+    public TuplePointer get(int place){
+        return data.get(place);
+    }
+
     public Vector<Tuple> get(Vector<SQLTerm> columns) throws DBAppException{
         Vector<Tuple> res = new Vector<>();
-        Hashtable<Integer, Vector<Integer>> pointerPack = new Hashtable<>();
-
-        // sorting the data with respect to page position
-        Collections.sort(this.data, (a, b) -> a.pagePos - b.pagePos);
+        System.out.println("[LOG] HEY IAM HERE");
+        Hashtable<String, Vector<Integer>> pointerPack = new Hashtable<>();
         
         // grouping the tuples by pages to minimize the IO operations
         for(TuplePointer tp : this.data){
             Vector<Integer> _tmp = (
-                pointerPack.containsKey(tp.pagePos) ? pointerPack.get(tp.pagePos) : new Vector<>()
+                pointerPack.containsKey(tp.pageHash) ? pointerPack.get(tp.pageHash) : new Vector<>()
             );
             _tmp.add(tp.tuplePos);
-            pointerPack.put(tp.pagePos, _tmp);
+            pointerPack.put(tp.pageHash, _tmp);
         }
 
-        for(Map.Entry<Integer, Vector<Integer>> entries: pointerPack.entrySet()){
-            int pagePos = entries.getKey();
+        for(Map.Entry<String, Vector<Integer>> entries: pointerPack.entrySet()){
+            String pageHash = entries.getKey();
             Vector<Integer> tuples = entries.getValue();
-            Page page = this.context.buckets.get(pagePos);
+            Page page = null;
+            for(Page p : this.context.buckets)
+                if(p.getPageName().equals(pageHash)){
+                    page = p;
+                    break;
+                }
+            if(page == null){
+                System.out.printf("[ERROR] this page dose not exists %s\n", pageHash);
+                throw new DBAppException();
+            }
             page.load();
             for(int t : tuples){
                 Tuple tuple = page.data.get(t);
@@ -78,6 +95,34 @@ public class IndexPage implements Serializable{
     public void remove(TuplePointer ptr){
         this.data.remove(ptr);
     }
+    
+    public String getPathToPage() {
+        return this.pathToPages;
+    }
+
+    public String getPageName(){
+        return this.pageName;
+    }
+
+    public void remove(int index) throws DBAppException{
+        this.data.remove(index);
+        // handle over flowpages
+        if(this.data.size() == 0){
+            if(this.overflowPage != null){
+                // switch between this page and the linked over flow
+                this.index._delete(this.overflowPage);
+                this.data = this.overflowPage.data;
+                this.pageName = this.overflowPage.pageName;
+                this.overflowPage = this.overflowPage.overflowPage;
+            }else{
+                // Tdelete the current file
+                this.index.data.set(this.posInIndex, null);
+                this.index._delete(this);
+                ;
+            }
+        }
+    }
+
 
     public void free() {
         // free the memory occupied be the page in the main memory

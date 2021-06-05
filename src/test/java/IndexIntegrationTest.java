@@ -7,9 +7,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 import java.util.stream.Collectors;
 //import main.java.*;
 
@@ -227,6 +230,52 @@ public class IndexIntegrationTest {
 
     @Test
     @Order(7)
+    public void testIndexPages() throws DBAppException{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        Table table = dbApp._getTable("students");
+
+        Hashtable<Set<String>, Index> indexes = table.indexes;
+
+        Index index = indexes.get(
+            Arrays.asList(
+                new String[] { "id", "gpa" }
+            ).stream().collect(Collectors.toSet())
+        );
+
+        Assertions.assertNotNull(index);
+        for(IndexPage iPage : index.data){
+            if(iPage == null) continue;
+            iPage.load();
+            for(TuplePointer tp : iPage.data)
+                System.out.printf("[tupledata]: %s\n", tp.toString());
+            iPage.free();
+        }
+
+        System.out.printf("[LOG] this is the Range Values %s\n", index.dimentions);
+
+        HashSet<Tuple> result = index.search(
+            Arrays.asList(new SQLTerm[]{
+                new SQLTerm(
+                    "students",
+                    "gpa",
+                    ">=",
+                    new Double(1)
+                ),
+                new SQLTerm(
+                    "students",
+                    "id",
+                    ">=",
+                    "69-2870"
+                )
+            }).stream().collect(Collectors.toCollection(Vector::new))
+        );
+        System.out.printf("[LOG] this is the final result %s \n", result.toString());
+    }
+
+    @Test
+    @Order(8)
     public void printRnages() throws Exception{
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -240,15 +289,15 @@ public class IndexIntegrationTest {
     }
 
     @Test
-    @Order(8)
-    public void execQueries() throws IOException{
+    @Order(9)
+    public void execQueries() throws IOException, DBAppException{
         final DBApp dbApp = new DBApp();
         dbApp.init();
 
         SQLTerm t1 = new SQLTerm(
             "students",
             "id",
-            "<",
+            ">",
             "44-1010"
         );
 
@@ -256,7 +305,7 @@ public class IndexIntegrationTest {
             "students",
             "gpa",
             ">",
-            new Double(10.1)
+            new Double(1.1)
         );
 
         SQLTerm t3 = new SQLTerm(
@@ -264,7 +313,6 @@ public class IndexIntegrationTest {
             "dob",
             ">=",
             new Date(2018, 5, 23)
-
         );
 
         SQLTerm t4 = new SQLTerm(
@@ -282,35 +330,42 @@ public class IndexIntegrationTest {
 
         SQLTerm [] sqlTerms3 = { t4, t2, t3, t1 };
         String [] operators3 = { "or", "or", "or" };
-
+        
         SQLTerm [] sqlTerms4 = { t3, t4, t2, t1 };
         String [] operators4 = { "and", "and", "and" };
 
         // TODO reviste and log from the doingAll (AND | XOR | OR) & bestIndex Selection
-        System.out.println("[LOG] Testing the first Query");
-        Assertions.assertDoesNotThrow(() -> 
-            dbApp.selectFromTable(sqlTerms1, operators1)
-        );
-        System.out.println("[LOG] Done Testing the first Query");
+        // System.out.println("[LOG] Testing the first Query");
+        // Assertions.assertDoesNotThrow(() -> 
+        //     dbApp.selectFromTable(sqlTerms1, operators1)
+        // );
+        // System.out.println("[LOG] Done Testing the first Query");
+
+        // System.out.println("[LOG] Testing second Query");
+        // Assertions.assertDoesNotThrow(() -> 
+        //     dbApp.selectFromTable(sqlTerms2, operators2)
+        // );
+        // System.out.println("[LOG] Done Testing the second Query");
+
+        // System.out.println("[LOG] Testing third Query");
+        // Assertions.assertDoesNotThrow(() -> 
+        //     dbApp.selectFromTable(sqlTerms3, operators3)
+        // );
+        // System.out.println("[LOG] Done Testing the third Query");
+
+        // System.out.println("[LOG] Testing fourth Query");
+        // Assertions.assertDoesNotThrow(() -> 
+        //     dbApp.selectFromTable(sqlTerms4, operators4)
+        // );
+        // System.out.println("[LOG] Done Testing fourth Query");
 
 
-        System.out.println("[LOG] Testing second Query");
-        Assertions.assertDoesNotThrow(() -> 
-            dbApp.selectFromTable(sqlTerms2, operators2)
-        );
-        System.out.println("[LOG] Done Testing the second Query");
-
-        System.out.println("[LOG] Testing third Query");
-        Assertions.assertDoesNotThrow(() -> 
-            dbApp.selectFromTable(sqlTerms2, operators2)
-        );
-        System.out.println("[LOG] Done Testing the third Query");
-
-        System.out.println("[LOG] Testing fourth Query");
-        Assertions.assertDoesNotThrow(() -> 
-            dbApp.selectFromTable(sqlTerms2, operators2)
-        );
-        System.out.println("[LOG] Done Testing fourth Query");
+        Iterator itr =  dbApp.selectFromTable(new SQLTerm [] { t1 }, new String[0]);
+        System.out.printf("[LOG] itr %s\n", itr.toString());
+        System.out.printf("[LOG] itr hasNext %s\n", itr.hasNext());
+        while(itr.hasNext()){
+            System.out.println(itr.next());
+        }
 
     }
 
