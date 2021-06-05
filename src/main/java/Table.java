@@ -146,6 +146,15 @@ class Table implements Serializable {
                     reslt.add(indSet);
                     tuple.placeInIndex.add(reslt);
                 }
+                if(index!=page.data.size()-1){
+                    for(int updateIndex=index;updateIndex<page.data.size();updateIndex++){
+                        Tuple Tuple=page.data.get(updateIndex);
+                        for (Object place : Tuple.placeInIndex) {
+                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                    .update((Vector<Integer>) ((Vector<Object>) place).get(0), updateIndex);
+                        }
+                    }
+                }
                 page.saveAndFree();
             } else if (pageIndex != this.buckets.size() - 1 && buckets.get(pageIndex + 1).size() < DBApp.maxPerPage) {
                 Page nxtPage = buckets.get(pageIndex + 1);
@@ -154,7 +163,10 @@ class Table implements Serializable {
                 // get the last tuple
                 TupleIndex = (Vector) page.insert(tuple, true);
                 int index = (int) TupleIndex.get(1);
-                TuplePointer tp = new TuplePointer(page.getPageName(), index);
+                TuplePointer tp = new TuplePointer(nxtPage.getPageName(), 0);
+                if(index!=page.data.size()){
+                    tp = new TuplePointer(page.getPageName(), index);
+                }
                 for (Set<String> indSet : Index) {
                     Index ind = indexes.get(indSet);
                     Vector<Integer> res = ind.add(tuple, tp);
@@ -165,9 +177,21 @@ class Table implements Serializable {
                 }
                 tuple = (Tuple) TupleIndex.get(0);
                 int i = (int) nxtPage.insert(tuple, false).get(1);
-                for (Object place : tuple.placeInIndex) {
-                    indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                            .update((Vector<Integer>) ((Vector<Object>) place).get(0), i);
+                if(index!=page.data.size()){
+                    for(int updateIndex=index;updateIndex<page.data.size();updateIndex++){
+                        Tuple Tuple=page.data.get(updateIndex);
+                        for (Object place : Tuple.placeInIndex) {
+                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                    .update((Vector<Integer>) ((Vector<Object>) place).get(0), updateIndex);
+                        }
+                    }
+                }
+                for(int updateIndex=0;updateIndex<nxtPage.data.size();updateIndex++){
+                    Tuple Tuple=page.data.get(updateIndex);
+                    for (Object place : Tuple.placeInIndex) {
+                        indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                .update((Vector<Integer>) ((Vector<Object>) place).get(0), updateIndex,nxtPage.getPageName());
+                    }
                 }
                 page.saveAndFree();
                 nxtPage.saveAndFree();
@@ -177,8 +201,12 @@ class Table implements Serializable {
                 page.load();
                 // get the first tuple
                 TupleIndex = (Vector) page.insert(tuple, false);
+                tuple = (Tuple) TupleIndex.get(0);
                 int index = (int) TupleIndex.get(1);
-                TuplePointer tp = new TuplePointer(page.getPageName(), index);
+                TuplePointer tp = new TuplePointer(prevPage.getPageName(), prevPage.data.size());
+                if(index!=0){
+                    tp = new TuplePointer(page.getPageName(), index);
+                }
                 for (Set<String> indSet : Index) {
                     Index ind = indexes.get(indSet);
                     Vector<Integer> res = ind.add(tuple, tp);
@@ -188,9 +216,20 @@ class Table implements Serializable {
                     tuple.placeInIndex.add(reslt);
                 }
                 int i = (int) prevPage.insert(tuple, false).get(1);
-                for (Object place : tuple.placeInIndex) {
-                    indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                            .update((Vector<Integer>) ((Vector<Object>) place).get(0), i);
+                if(index!=0){
+                    for (Object place : tuple.placeInIndex) {
+                        indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                .update((Vector<Integer>) ((Vector<Object>) place).get(0), i,prevPage.getPageName());
+                    }
+                }
+                else{
+                    for(int updateIndex=index;updateIndex<page.data.size();updateIndex++){
+                        Tuple Tuple=page.data.get(updateIndex);
+                        for (Object place : Tuple.placeInIndex) {
+                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                    .update((Vector<Integer>) ((Vector<Object>) place).get(0), updateIndex);
+                        }
+                    }
                 }
                 page.saveAndFree();
                 prevPage.saveAndFree();
@@ -221,6 +260,13 @@ class Table implements Serializable {
                         reslt.add(indSet);
                         tuple.placeInIndex.add(reslt);
                     }
+                    for(int updateIndex=index;updateIndex<page.data.size();updateIndex++){
+                        Tuple Tuple=page.data.get(updateIndex);
+                        for (Object place : Tuple.placeInIndex) {
+                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
+                                    .update((Vector<Integer>) ((Vector<Object>) place).get(0), updateIndex);
+                        }
+                    }
                 }
                 nxtPage.setData(newData);
                 page.saveAndFree();
@@ -229,7 +275,7 @@ class Table implements Serializable {
                 for (Tuple Tuple : newData) {
                     for (Object place : Tuple.placeInIndex) {
                         indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                .update((Vector<Integer>) ((Vector<Object>) place).get(0), newData.indexOf(Tuple));
+                                .update((Vector<Integer>) ((Vector<Object>) place).get(0), newData.indexOf(Tuple),nxtPage.getPageName());
                     }
                 }
             }
@@ -239,7 +285,6 @@ class Table implements Serializable {
         this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
         this._saveChanges();
     }
-
     // BS with min&max to get the needed page to insert or update into
     private int _searchPages(Tuple tuple) {
         int index = 0;

@@ -99,7 +99,7 @@ class Page implements Serializable {
     public Vector<Object> insertAndSplit(Tuple tuple)throws DBAppException {
         Vector<Object> res = new Vector<>();
         Vector<Object> TupleIndex =  this.insert(tuple, true);
-        Tuple last = (Tuple) TupleIndex.get(0);
+        Tuple last = (Tuple)TupleIndex.get(0);
         int index = (int) TupleIndex.get(1);
         Vector<Tuple> result = new Vector<Tuple>();
         int maxPerPage = DBApp.maxPerPage;
@@ -115,7 +115,6 @@ class Page implements Serializable {
         	index = index-maxPerPage/2;
         	newPage = true;
         }
-        
         res.add(result);
         res.add(newPage);
         res.add(index);

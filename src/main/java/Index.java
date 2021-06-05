@@ -40,6 +40,17 @@ public class Index implements Serializable {
         this._fill();
     }
 
+    public void update(Vector<Integer> tuplePointerPlace,int TuplePos, String pageHash) {
+        int placeInIndex = tuplePointerPlace.get(1);
+        int placeInPage = tuplePointerPlace.get(0);
+        IndexPage iPage = data.get(placeInIndex);
+        iPage.load();
+        TuplePointer tp = iPage.get(placeInPage);
+        tp.tuplePos = TuplePos;
+        tp.pageHash = pageHash;
+        iPage.saveAndFree();
+    }
+
     public Vector<Integer> add(Tuple t, TuplePointer tp) throws DBAppException{
         // guaranted to be array of one element as _formateArga will form an exeact value query
         int posInPage = 0;

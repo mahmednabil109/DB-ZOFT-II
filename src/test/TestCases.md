@@ -13,3 +13,17 @@
 - [ ] test correctness of the `AND` `OR` `XOR` operators with actual queries.
 - [ ] test correctness of the result of single , multiple and range queries with help of python script.
 - [ ] test correctness and the consistancy of the queries after and befor deleting related and non-related rows.
+
+# notes
+- we need to log when inserting to know what actualy running
+
+# steps
+- [x] import the code from mostafa
+- [X] reread the code and compare it
+- [ ] test regularly one more time.
+- [ ] deactivate the serialization and work with data in memory
+- [ ] insert row by row and then check the order
+- [ ] correct the code ..
+
+# todos
+- [ ] uncomment serialization functions in table, page, index, pageIndex

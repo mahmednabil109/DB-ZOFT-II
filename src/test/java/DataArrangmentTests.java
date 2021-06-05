@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class Milestone1TestUpdateDelete {
+public class DataArrangmentTests {
 
     public static Vector<Tuple> page1 = new Vector<Tuple>(), page3 = new Vector<Tuple>();
     public static int tableSize = 0;
