@@ -12,6 +12,7 @@ import java.util.Vector;
 public class IndexPage implements Serializable{
 
     private IndexPage overflowPage;
+    private String pageHash;
     private String pathToPages;
     private String pageName;
     private Table context;
@@ -23,6 +24,7 @@ public class IndexPage implements Serializable{
     public IndexPage(Table context, Index index, int pos, String path){
         this.posInIndex = pos;
         this.index = index;
+        this.pageHash = this.toString();
         this.context = context;
         this.overflowPage = null;
         this.data = new Vector<>();
@@ -31,25 +33,36 @@ public class IndexPage implements Serializable{
         this.save();
     }
 
-    public int indexOf(TuplePointer tp){
-        return data.indexOf(tp);
+    public int indexOf(String hash,TuplePointer tp){
+        if(!hash.equals(this.pageHash)) 
+            return this.overflowPage.indexOf(hash,tp);
+        return this.data.indexOf(tp);
     }
 
-    public IndexPage insert(TuplePointer tp){
+    public String insert(TuplePointer tp){
         if(this.data.size() == DBApp.maxPerIndexPage){
             this.overflowPage = new IndexPage(this.context, this.index, this.posInIndex, this.pathToPages);
             this.overflowPage.load();
-            this.overflowPage.insert(tp);
+            String hash = this.overflowPage.insert(tp);
+            System.out.println("A: " + this.posInIndex + " ," + hash);
             this.overflowPage.saveAndFree();
+            return hash;
         }else{
             this.data.add(tp);
             tp.setParent(this);
         }
-        return this;
+        System.out.println("A: " + this.posInIndex + " ," + this.pageHash);
+
+        return this.pageHash;
     }
 
-    public TuplePointer get(int place){
-        return data.get(place);
+    public TuplePointer get(String hash, int place){
+        if(hash.equals(this.pageHash))
+            return data.get(place);
+        else{
+            System.out.println("what hash: " + hash + ", " + this.pageHash);
+            return overflowPage.get(hash, place);
+        }
     }
 
     public Vector<Tuple> get(Vector<SQLTerm> columns) throws DBAppException{
@@ -198,5 +211,10 @@ public class IndexPage implements Serializable{
         // System.out.println(htb);
         // System.out.println(htb.get(s2));
 
+    }
+
+    public int size(String hash) {
+        if(hash.equals(pageHash)) return data.size();
+        return overflowPage.size(hash);
     }
 }

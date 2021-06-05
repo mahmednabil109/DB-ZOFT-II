@@ -158,7 +158,7 @@ public class DBApp implements DBAppInterface {
             System.out.printf("[ERROR] something habbens when openning table %s\n", sqlTerms[0]._strTableName);
             throw new DBAppException();
         }
-        if(sqlTerms.length!=1){
+        if(sqlTerms.length!=1 && sqlTerms.length != 0){
             Object[] all = mergeStatement(sqlTerms, arrayOperators);
             Vector<Object> allPost = convertToPost(all);
             allPost = doingAllAnd(allPost, table);
@@ -167,7 +167,7 @@ public class DBApp implements DBAppInterface {
             System.out.println("ALLPOST: " + allPost);
             return ((HashSet<Tuple>) allPost.get(0)).iterator();
         }
-        else{
+        else if(sqlTerms.length != 0){
             Vector<SQLTerm> sqlTerm=new Vector<>();
             sqlTerm.add(sqlTerms[0]);
             Vector<Object> result=table.getBestIndex(sqlTerm);
@@ -178,6 +178,9 @@ public class DBApp implements DBAppInterface {
             else{
                 return table.search(sqlTerm).iterator();
             }
+        }
+        else{
+            return table.retrieveALl().iterator();
         }
     }
 
@@ -502,4 +505,8 @@ public class DBApp implements DBAppInterface {
         return null;
     }
 
+     // below method returns Iterator with result set if passed// strbufSQL is a select, otherwise returns null.
+     public Iterator parseSQL(StringBuffer strbufSQL ) throws DBAppException{
+        return null;
+    }
 }

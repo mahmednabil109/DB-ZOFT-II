@@ -40,32 +40,41 @@ public class Index implements Serializable {
         this._fill();
     }
 
-    public void update(Vector<Integer> tuplePointerPlace,int TuplePos, String pageHash) {
-        int placeInIndex = tuplePointerPlace.get(1);
-        int placeInPage = tuplePointerPlace.get(0);
+    public void update(Vector<Object> tuplePointerPlace,int TuplePos, String pageHash) {
+        int placeInIndex = (int) tuplePointerPlace.get(1);
+        int placeInPage = (int) tuplePointerPlace.get(0);
+        String hash = (String) tuplePointerPlace.get(2);
         IndexPage iPage = data.get(placeInIndex);
         iPage.load();
-        TuplePointer tp = iPage.get(placeInPage);
+        TuplePointer tp = iPage.get(hash, placeInPage);
         tp.tuplePos = TuplePos;
         tp.pageHash = pageHash;
         iPage.saveAndFree();
     }
 
-    public Vector<Integer> add(Tuple t, TuplePointer tp) throws DBAppException{
+    public Vector<Object> add(Tuple t, TuplePointer tp) throws DBAppException{
         // guaranted to be array of one element as _formateArga will form an exeact value query
         int posInPage = 0;
         int posInIndex = 0;
+        String hash = "";
         for(int pos : this._getPositions(this._formateArgs(t))){
             posInIndex = pos;
             IndexPage iPage = this.data.get(pos);
+            if(iPage == null){
+                iPage = new IndexPage(this.context, this, pos, this.context.getPathToIndexes());
+                this.data.set(pos, iPage);
+            }
             iPage.load();
-            iPage.insert(tp);
-            posInPage = iPage.indexOf(tp);
+            hash = iPage.insert(tp);
+            posInPage = iPage.indexOf(hash, tp);
+            System.out.println("A: " + posInIndex + " ," + hash);
             iPage.saveAndFree();
         }
-        Vector<Integer> place = new Vector<>();
+        Vector<Object> place = new Vector<>();
         place.add(posInPage);
         place.add(posInIndex);
+        place.add(hash);
+
         return place;
     }
 
@@ -203,7 +212,7 @@ public class Index implements Serializable {
                 throw new DBAppException();
             }
         //!D
-        System.out.println("[LOG] those columns are realy exists");
+        // System.out.println("[LOG] those columns are realy exists");
         
         Vector<Tuple> res = new Vector<>();
         //  here goes the dE7k
@@ -351,22 +360,41 @@ public class Index implements Serializable {
     //     iPage.saveAndFree();
     // }
 
-    public void update(Vector<Integer> tuplePointerPlace,int TuplePos) {
-        int placeInIndex = tuplePointerPlace.get(1);
-        int placeInPage = tuplePointerPlace.get(0);
+    public void update(Vector<Object> tuplePointerPlace, int TuplePos) {
+        int placeInIndex = (int) tuplePointerPlace.get(1);
+        int placeInPage = (int) tuplePointerPlace.get(0);
+        String hash = (String) tuplePointerPlace.get(2);
         IndexPage iPage = data.get(placeInIndex);
+
+        if(iPage == null){
+            iPage = new IndexPage(this.context, this, placeInIndex, this.context.getPathToIndexes());
+            System.out.println("DE7K");
+        }
+        System.out.println("D: " + placeInIndex + " ," + hash);
         iPage.load();
-        TuplePointer tp = iPage.get(placeInPage);
+        TuplePointer tp = iPage.get(hash, placeInPage);
         tp.tuplePos = TuplePos;
         iPage.saveAndFree();
     }
 
-    public void delete(Vector<Integer> place) throws DBAppException {
-        int placeInIndex = place.get(1);
-        int placeInPage = place.get(0);
+
+    public Vector<TuplePointer> delete(Vector<Object> place) throws DBAppException {
+        int placeInIndex = (int) place.get(1);
+        int placeInPage = (int) place.get(0);
+        String hash = (String) place.get(2);
         IndexPage iPage = data.get(placeInIndex);
+
+        if(iPage == null)
+            return new Vector<TuplePointer>();
         iPage.load();
         iPage.remove(placeInPage);
+        int pageSize = iPage.size(hash);
+        Vector<TuplePointer> res=new Vector<>();
+        for(int i=placeInPage; i<pageSize; i++){
+            TuplePointer tp = iPage.get(hash, placeInPage);
+            res.add(tp);
+        }
         iPage.saveAndFree();
+        return res;
     }
 }

@@ -1,56 +1,29 @@
 
 import org.junit.jupiter.api.*;
 
-import java.awt.Polygon;
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.Vector;
 import java.util.stream.Collectors;
 //import main.java.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class Milestone1Test_v2 {
+public class ConsistancyTests {
+
+
     @Test
     @Order(1)
-    public void testSetPageSize() throws Exception {
-        String configFilePath = "src/main/resources/";
-
-        if (Files.exists(Paths.get(configFilePath, "DBApp.config"))) {
-            configFilePath = Paths.get(configFilePath, "DBApp.config").toString();
-        } else if (Files.exists(Paths.get(configFilePath, "DBApp.properties"))) {
-            configFilePath = Paths.get(configFilePath, "DBApp.properties").toString();
-        } else {
-            throw new Exception("`DBApp.config` does not exist in resources directory");
-        }
-
-        List<String> config = Files.readAllLines(Paths.get(configFilePath));
-        boolean lineFound = false;
-        for (int i = 0; i < config.size(); i++) {
-            if (config.get(i).toLowerCase().contains("page")) {
-                config.set(i, config.get(i).replaceAll("\\d+", "250"));
-                lineFound = true;
-                break;
-            }
-        }
-
-        if (!lineFound) {
-            throw new Exception("Cannot set page size, make sure that key `MaximumRowsCountinTablePage` is present in DBApp.config");
-        }
-
-        Files.write(Paths.get(configFilePath), config);
-
-    }
-
-    @Test
-    @Order(2)
-    public void testClearMetaDataFile() throws Exception{
+    public void testClearMetaDataFile() throws Exception {
 
         String metaFilePath = "src/main/resources/metadata.csv";
         File metaFile = new File(metaFilePath);
@@ -65,8 +38,11 @@ public class Milestone1Test_v2 {
     }
 
     @Test
-    @Order(3)
+    @Order(2)
     public void testDataDirectory() throws Exception {
+        DBApp dbApp = new DBApp();
+        dbApp.init();
+
         String dataDirPath = "src/main/resources/data";
         File dataDir = new File(dataDirPath);
 
@@ -84,22 +60,36 @@ public class Milestone1Test_v2 {
             e.printStackTrace();
         }
 
-//        System.out.println(files);
         for (String file : files) {
             Files.delete(Paths.get(file));
         }
     }
 
     @Test
-    @Order(4)
-    public void testTableCreation() throws Exception {
+    @Order(3)
+    public void testTableCreationIfNot() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
 
+        System.out.println("[LOG] Creating Table Students");
         createStudentTable(dbApp);
-        createCoursesTable(dbApp);
+        System.out.println("[LOG] Done Creating Table Students");
+        System.out.println("[LOG] Creating Table Students2");
+        createStudentTable2(dbApp);
+        System.out.println("[LOG] Done Creating Table Students2");
+        // System.out.println("[LOG] Creating Table Courses");
+        // createCoursesTable(dbApp);
+        // System.out.println("[LOG] Done Creating Table Courses");
+        System.out.println("[LOG] Done Creating Table Transcripts");
         createTranscriptsTable(dbApp);
-        createPCsTable(dbApp);
+        System.out.println("[LOG] Done Creating Table Transcripts");
+        System.out.println("[LOG] Done Creating Table Transcripts2");
+        createTranscriptsTable2(dbApp);
+        System.out.println("[LOG] Done Creating Table Transcripts2");
+        // System.out.println("[LOG] Done Creating Table PCs");
+        // createPCsTable(dbApp);
+        // System.out.println("[LOG] Done Creating Table PCs");
+
 
         dbApp = null;
     }
@@ -111,308 +101,151 @@ public class Milestone1Test_v2 {
         dbApp.init();
         int limit = 500;
 
+        System.out.println("[LOG] Inserting into Table Students");
         insertStudentRecords(dbApp, limit);
-        insertCoursesRecords(dbApp, limit);
+        System.out.println("[LOG] Done Inserting into Table Students");
+        System.out.println("[LOG] Inserting into Table Students2");
+        insertStudentRecords2(dbApp, limit);
+        System.out.println("[LOG] Done Inserting into Table Students2");
+        // insertCoursesRecords(dbApp, limit);
+        System.out.println("[LOG] Inserting into Table Transcript");
         insertTranscriptsRecords(dbApp, limit);
-        insertPCsRecords(dbApp, limit);
-        dbApp = null;
-    }
-
-
-    @Test
-    public void testExtraStudentsInsertion() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "students";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("id", "31-1235");
-        row.put("first_name", "foo");
-        row.put("middle_name", "bateekh");
-        row.put("last_name", "bar");
-
-
-        Date dob = new Date(1995 - 1900, 4 - 1, 1);
-        row.put("dob", dob);
-
-        row.put("gpa", 1.1);
-
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-                    dbApp.insertIntoTable(table, row);
-                }
-        );
-
-    }
-
-    @Test
-    public void testExtraCoursesInsertion() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "courses";
-        Hashtable<String, Object> row = new Hashtable();
-
-        Date date_added = new Date(2011 - 1900, 4 - 1, 1);
-        row.put("date_added", date_added);
-
-        row.put("course_id", "foo");
-        row.put("course_name", "bar");
-        row.put("hours", 13);
-        row.put("semester", 5);
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-                    dbApp.insertIntoTable(table, row);
-                }
-        );
-
-    }
-
-    @Test
-    public void testExtraTranscriptsInsertion() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "transcripts";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("gpa", 1.5);
-        row.put("student_id", "34-9874");
-        row.put("course_name", "bar");
-        row.put("elective", true);
-
-
-        Date date_passed = new Date(2011 - 1900, 4 - 1, 1);
-        row.put("date_passed", date_passed);
-
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-                    dbApp.insertIntoTable(table, row);
-                }
-        );
-    }
-
-
-    @Test
-    public void testExtraPCsInsertion() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "pcs";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("pc_id", 50);
-        row.put("student_id", "31-12121");
-        row.put("room", "C7.02");
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-                    dbApp.insertIntoTable(table, row);
-                }
-        );
-    }
-
-    @Test
-    public void testUpdateStudents() throws Exception {
-        DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "students";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("first_name", "foo");
-        row.put("last_name", "bar");
-
-        Date dob = new Date(1992 - 1900, 9 - 1, 8);
-        row.put("dob", dob);
-        row.put("gpa", 1.1);
-
-        dbApp.updateTable(table, "82-8772", row);
+        System.out.println("[LOG] Done Inserting into Table Transcript");
+        System.out.println("[LOG] Inserting into Table Transcript2");
+        insertTranscriptsRecords2(dbApp, limit);
+        System.out.println("[LOG] Done Inserting into Table Transcript2");
+        // insertPCsRecords(dbApp, limit);
         dbApp = null;
     }
 
     @Test
-    public void testUpdateCourses() throws Exception {
-        DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "courses";
-        Hashtable<String, Object> row = new Hashtable();
-
-        row.put("course_id", "1100");
-        row.put("course_name", "bar");
-        row.put("hours", 13);
-
-
-        dbApp.updateTable(table, "2000-04-03", row);
-        dbApp = null;
-    }
-
-    @Test
-    public void testUpdateTranscripts() throws Exception {
+    @Order(4)
+    public void createIndexes() throws Exception {
         final DBApp dbApp = new DBApp();
         dbApp.init();
 
-        String table = "transcripts";
-        Hashtable<String, Object> row = new Hashtable();
 
-        row.put("student_id", "43-9874");
-        row.put("course_name", "bar");
 
-        Date date_passed = new Date(2011 - 1900, 4 - 1, 1);
-        row.put("date_passed", date_passed);
+        // Index 1
+        System.out.println("[LOG] Creating the first Index");
+        Assertions.assertDoesNotThrow(
+            () -> dbApp.createIndex(
+                "students", 
+                new String[] { "id", "gpa" }
+            )
+        );
+        System.out.println("[LOG] Done Creating the first Index");
 
-        dbApp.updateTable(table, "1.57", row);
+        // Index 2
+        System.out.println("[LOG] Creating the second Index");
+        Assertions.assertDoesNotThrow(
+            () -> dbApp.createIndex(
+                "students", 
+                new String[] { "first_name", "gpa", "dob" }
+            )
+        );
+        System.out.println("[LOG] Done Creating the second Index");
+
+        // Index 3
+        System.out.println("[LOG] Creating the third Index");
+        Assertions.assertDoesNotThrow(() -> 
+            dbApp.createIndex(
+                "transcripts", 
+                new String[]{ "gpa", "student_id"}
+            )
+        );
+        System.out.println("[LOG] Done Creating the third Index");
+
+        // Index 4
+        System.out.println("[LOG] Creating the fourth Index");
+        Assertions.assertDoesNotThrow(() ->
+            dbApp.createIndex(
+                "transcripts", 
+                new String[]{ "student_id", "course_name"}    
+            )
+        );
+        System.out.println("[LOG] Done Creating the fourth Index");
+
     }
 
     @Test
-    public void testUpdatePCs() throws Exception {
+    @Order(6)
+    public void testAfterBforeStudent() throws Exception{
         final DBApp dbApp = new DBApp();
         dbApp.init();
 
-        String table = "pcs";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("student_id", "43-12121");
+        SQLTerm t1 = new SQLTerm(
+            "students",
+            "id",
+            ">",
+            "44-1010"
+        );
 
-        dbApp.updateTable(table, "00353", row);
-    }
+        SQLTerm t2 = new SQLTerm(
+            "students",
+            "gpa",
+            "<=",
+            new Double(2)
+        );
 
-    @Test
-    public void testUpdateStudentsExtra() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
+        SQLTerm t12 = new SQLTerm(
+            "students2",
+            "id",
+            ">",
+            "44-1010"
+        );
 
-        String table = "students";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("first_name", "foo");
-        row.put("middle_name", "hamada");
-        row.put("last_name", "bar");
+        SQLTerm t22 = new SQLTerm(
+            "students2",
+            "gpa",
+            "<=",
+            new Double(2)
+        );
 
-        Date dob = new Date(1992 - 1900, 9 - 1, 8);
-        row.put("dob", dob);
-        row.put("gpa", 1.1);
+        Iterator itr1 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t1, t2
+            }, 
+            new String[]{
+                "and"
+            }
+        );
 
-        Assertions.assertThrows(DBAppException.class, () -> {
-            dbApp.updateTable(table, "82-8772", row);
+        System.out.println("============================");
+
+        Iterator itr2 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t12, t22
+            }, 
+            new String[]{
+                "and"
+            }
+        );
+
+        Assertions.assertEquals(itr1.hasNext(), itr2.hasNext());
+
+        Vector<Tuple> set1 = new Vector<>();
+        Vector<Tuple> set2 = new Vector<>();
+
+        while(itr1.hasNext()) set1.add((Tuple) itr1.next());
+        while(itr2.hasNext()) set2.add((Tuple) itr2.next());
+
+        System.out.printf("[LOG] %d should equal %d\n", set1.size(), set2.size());
+
+        Assertions.assertEquals(set1.size(), set2.size());
+
+        Collections.sort(set1);
+        Collections.sort(set2);
+
+        Assertions.assertDoesNotThrow(() -> {
+            for(int i=0; i<set1.size();i++)
+                if(!(set1.get(i).compareTo(set2.get(i)) == 0))
+                    throw new Exception("non equal");
         });
 
-    }
+       }
 
-    @Test
-    public void testUpdateCoursesExtra() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "courses";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("elective", true);
-        row.put("course_id", "foo");
-        row.put("course_name", "bar");
-        row.put("hours", 13);
-        row.put("semester", 5);
-
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-            dbApp.updateTable(table, "2000-04-01", row);
-        });
-    }
-
-    @Test
-    public void testUpdateTranscriptsExtra() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "transcripts";
-        Hashtable<String, Object> row = new Hashtable();
-
-        row.put("student_id", "34-9874");
-        row.put("course_name", "bar");
-
-        Date date_passed = new Date(2011 - 1900, 4 - 1, 1);
-        row.put("date_passed", date_passed);
-
-        row.put("elective", true);
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-            dbApp.updateTable(table, "1.57", row);
-        });
-
-    }
-
-    @Test
-    public void testUpdatePCsExtra() {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "pcs";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("student_id", "43-12121");
-
-        row.put("os", "linux");
-
-        Assertions.assertThrows(DBAppException.class, () -> {
-            dbApp.updateTable(table, "00353", row);
-        });
-
-
-    }
-
-    @Test
-    public void testStudentsDeletionComplex() throws Exception {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "students";
-        Hashtable<String, Object> row = new Hashtable();
-
-        Date dob = new Date(1993 - 1900, 11 - 1, 21);
-        row.put("dob", dob);
-
-        row.put("gpa", 1.23);
-
-        dbApp.deleteFromTable(table, row);
-
-    }
-
-    @Test
-    public void testCoursesDeleteComplex() throws Exception {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "courses";
-        Hashtable<String, Object> row = new Hashtable();
-        Date dateAdded = new Date(2000 - 1900, 11 - 1, 21);
-        row.put("date_added", dateAdded);
-        row.put("course_name", "pAYqDr");
-
-        dbApp.deleteFromTable(table, row);
-    }
-
-
-    @Test
-    public void testTranscriptsDeleteComplex() throws Exception {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "transcripts";
-        Hashtable<String, Object> row = new Hashtable();
-
-        row.put("course_name", "TwKnJm");
-        row.put("gpa", 0.92);
-
-        dbApp.deleteFromTable(table, row);
-    }
-
-    @Test
-    public void testPCsDeleteComplex() throws Exception {
-        final DBApp dbApp = new DBApp();
-        dbApp.init();
-
-        String table = "pcs";
-        Hashtable<String, Object> row = new Hashtable();
-        row.put("pc_id", 18763);
-        row.put("student_id", "57-4782");
-
-        dbApp.deleteFromTable(table, row);
-    }
-
-
+   
     private void insertStudentRecords(DBApp dbApp, int limit) throws Exception {
         BufferedReader studentsTable = new BufferedReader(new FileReader("src/main/resources/students_table.csv"));
         String record;
@@ -449,6 +282,42 @@ public class Milestone1Test_v2 {
         studentsTable.close();
     }
 
+    private void insertStudentRecords2(DBApp dbApp, int limit) throws Exception {
+        BufferedReader studentsTable = new BufferedReader(new FileReader("src/main/resources/students_table.csv"));
+        String record;
+        int c = limit;
+        if (limit == -1) {
+            c = 1;
+        }
+
+        Hashtable<String, Object> row = new Hashtable<>();
+        while ((record = studentsTable.readLine()) != null && c > 0) {
+            String[] fields = record.split(",");
+
+            row.put("id", fields[0]);
+            row.put("first_name", fields[1]);
+            row.put("last_name", fields[2]);
+
+            int year = Integer.parseInt(fields[3].trim().substring(0, 4));
+            int month = Integer.parseInt(fields[3].trim().substring(5, 7));
+            int day = Integer.parseInt(fields[3].trim().substring(8));
+
+            Date dob = new Date(year - 1900, month - 1, day);
+            row.put("dob", dob);
+
+            double gpa = Double.parseDouble(fields[4].trim());
+
+            row.put("gpa", gpa);
+
+            dbApp.insertIntoTable("students2", row);
+            row.clear();
+            if (limit != -1) {
+                c--;
+            }
+        }
+        studentsTable.close();
+    }
+
     private void insertCoursesRecords(DBApp dbApp, int limit) throws Exception {
         BufferedReader coursesTable = new BufferedReader(new FileReader("src/main/resources/courses_table.csv"));
         String record;
@@ -459,8 +328,6 @@ public class Milestone1Test_v2 {
         }
         while ((record = coursesTable.readLine()) != null && c > 0) {
             String[] fields = record.split(",");
-
-
 
             int year = Integer.parseInt(fields[0].trim().substring(0, 4));
             int month = Integer.parseInt(fields[0].trim().substring(5, 7));
@@ -486,7 +353,8 @@ public class Milestone1Test_v2 {
     }
 
     private void insertTranscriptsRecords(DBApp dbApp, int limit) throws Exception {
-        BufferedReader transcriptsTable = new BufferedReader(new FileReader("src/main/resources/transcripts_table.csv"));
+        BufferedReader transcriptsTable = new BufferedReader(
+                new FileReader("src/main/resources/transcripts_table.csv"));
         String record;
         Hashtable<String, Object> row = new Hashtable<>();
         int c = limit;
@@ -509,6 +377,41 @@ public class Milestone1Test_v2 {
             row.put("date_passed", dateUsed);
 
             dbApp.insertIntoTable("transcripts", row);
+            row.clear();
+
+            if (limit != -1) {
+                c--;
+            }
+        }
+
+        transcriptsTable.close();
+    }
+
+    private void insertTranscriptsRecords2(DBApp dbApp, int limit) throws Exception {
+        BufferedReader transcriptsTable = new BufferedReader(
+                new FileReader("src/main/resources/transcripts_table.csv"));
+        String record;
+        Hashtable<String, Object> row = new Hashtable<>();
+        int c = limit;
+        if (limit == -1) {
+            c = 1;
+        }
+        while ((record = transcriptsTable.readLine()) != null && c > 0) {
+            String[] fields = record.split(",");
+
+            row.put("gpa", Double.parseDouble(fields[0].trim()));
+            row.put("student_id", fields[1].trim());
+            row.put("course_name", fields[2].trim());
+
+            String date = fields[3].trim();
+            int year = Integer.parseInt(date.substring(0, 4));
+            int month = Integer.parseInt(date.substring(5, 7));
+            int day = Integer.parseInt(date.substring(8));
+
+            Date dateUsed = new Date(year - 1900, month - 1, day);
+            row.put("date_passed", dateUsed);
+
+            dbApp.insertIntoTable("transcripts2", row);
             row.clear();
 
             if (limit != -1) {
@@ -573,6 +476,33 @@ public class Milestone1Test_v2 {
         dbApp.createTable(tableName, "id", htblColNameType, minValues, maxValues);
     }
 
+    private void createStudentTable2(DBApp dbApp) throws Exception {
+        // String CK
+        String tableName = "students2";
+
+        Hashtable<String, String> htblColNameType = new Hashtable<String, String>();
+        htblColNameType.put("id", "java.lang.String");
+        htblColNameType.put("first_name", "java.lang.String");
+        htblColNameType.put("last_name", "java.lang.String");
+        htblColNameType.put("dob", "java.util.Date");
+        htblColNameType.put("gpa", "java.lang.Double");
+
+        Hashtable<String, String> minValues = new Hashtable<>();
+        minValues.put("id", "43-0000");
+        minValues.put("first_name", "AAAAAA");
+        minValues.put("last_name", "AAAAAA");
+        minValues.put("dob", "1990-01-01");
+        minValues.put("gpa", "0.7");
+
+        Hashtable<String, String> maxValues = new Hashtable<>();
+        maxValues.put("id", "99-9999");
+        maxValues.put("first_name", "zzzzzz");
+        maxValues.put("last_name", "zzzzzz");
+        maxValues.put("dob", "2000-12-31");
+        maxValues.put("gpa", "5.0");
+
+        dbApp.createTable(tableName, "id", htblColNameType, minValues, maxValues);
+    }
 
     private void createCoursesTable(DBApp dbApp) throws Exception {
         // Date CK
@@ -583,7 +513,6 @@ public class Milestone1Test_v2 {
         htblColNameType.put("course_id", "java.lang.String");
         htblColNameType.put("course_name", "java.lang.String");
         htblColNameType.put("hours", "java.lang.Integer");
-
 
         Hashtable<String, String> minValues = new Hashtable<>();
         minValues.put("date_added", "1901-01-01");
@@ -626,6 +555,30 @@ public class Milestone1Test_v2 {
         dbApp.createTable(tableName, "gpa", htblColNameType, minValues, maxValues);
     }
 
+    private void createTranscriptsTable2(DBApp dbApp) throws Exception {
+        // Double CK
+        String tableName = "transcripts2";
+
+        Hashtable<String, String> htblColNameType = new Hashtable<String, String>();
+        htblColNameType.put("gpa", "java.lang.Double");
+        htblColNameType.put("student_id", "java.lang.String");
+        htblColNameType.put("course_name", "java.lang.String");
+        htblColNameType.put("date_passed", "java.util.Date");
+
+        Hashtable<String, String> minValues = new Hashtable<>();
+        minValues.put("gpa", "0.7");
+        minValues.put("student_id", "43-0000");
+        minValues.put("course_name", "AAAAAA");
+        minValues.put("date_passed", "1990-01-01");
+
+        Hashtable<String, String> maxValues = new Hashtable<>();
+        maxValues.put("gpa", "5.0");
+        maxValues.put("student_id", "99-9999");
+        maxValues.put("course_name", "zzzzzz");
+        maxValues.put("date_passed", "2020-12-31");
+
+        dbApp.createTable(tableName, "gpa", htblColNameType, minValues, maxValues);
+    }
 
     private void createPCsTable(DBApp dbApp) throws Exception {
         // Integer CK
@@ -634,7 +587,6 @@ public class Milestone1Test_v2 {
         Hashtable<String, String> htblColNameType = new Hashtable<String, String>();
         htblColNameType.put("pc_id", "java.lang.Integer");
         htblColNameType.put("student_id", "java.lang.String");
-
 
         Hashtable<String, String> minValues = new Hashtable<>();
         minValues.put("pc_id", "0");
@@ -647,4 +599,3 @@ public class Milestone1Test_v2 {
         dbApp.createTable(tableName, "pc_id", htblColNameType, minValues, maxValues);
     }
 }
-
