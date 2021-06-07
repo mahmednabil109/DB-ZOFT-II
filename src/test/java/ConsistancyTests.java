@@ -232,6 +232,29 @@ public class ConsistancyTests {
 
         System.out.printf("[LOG] %d should equal %d\n", set1.size(), set2.size());
 
+
+        Collections.sort(set1);
+        Collections.sort(set2);
+
+        System.out.println("===================");
+        for(Tuple t : set1)
+            System.out.println(t);
+
+        System.out.println("===================");
+        for(Tuple t : set2)
+            System.out.println(t);
+ 
+        System.out.println("===================");
+        for(Tuple t : set2)
+            if(!set1.contains(t))
+                System.out.println("D: " + t.toString());
+    
+        Set<Tuple> s1 = set1.stream().collect(Collectors.toSet());
+        Set<Tuple> s2 = set2.stream().collect(Collectors.toSet());
+        
+        s1.retainAll(s2);
+
+        System.out.printf("[LOG] size in common ==> %d\n", s1.size());
         Assertions.assertEquals(set1.size(), set2.size());
 
         Collections.sort(set1);

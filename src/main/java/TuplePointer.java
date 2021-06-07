@@ -1,13 +1,14 @@
 import java.io.Serializable;
 
 public class TuplePointer implements Serializable{
-    String pageHash; 
-    int tuplePos;
+
+    String PKName;
+    Object PKValue;
     IndexPage parent;
 
-    public TuplePointer(String pagePos, int tuplePos){
-        this.pageHash = pagePos;
-        this.tuplePos = tuplePos;
+    public TuplePointer(String primaryKeyName, Object primaryKeyValue){
+        this.PKName = primaryKeyName;
+        this.PKValue = primaryKeyValue;
     }
 
     public void setParent(IndexPage page){
@@ -26,6 +27,6 @@ public class TuplePointer implements Serializable{
     }
 
     public String toString(){
-        return  "( " + this.pageHash + ", " + this.tuplePos + " )"; 
+        return  "<" + this.PKName + ", " + this.PKValue.toString() + " >"; 
     }
 }

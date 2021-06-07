@@ -1,5 +1,6 @@
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.*;
@@ -32,6 +33,14 @@ public class Utils {
         for(int i=0;i<_tmp.length;i++)
             count += ch == _tmp[i] ? 1 : 0;
         return count;
+    }
+
+    public static Tuple wrapTuplePointer(TuplePointer tp){
+        Hashtable<String, Object> data = new Hashtable<>();
+        data.put(tp.PKName, tp.PKValue);
+
+        // init dumb tuple to get it's position
+        return new Tuple(tp.PKName, data);
     }
 
     // get the next string by moving the first character #offset steps

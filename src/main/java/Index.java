@@ -40,23 +40,16 @@ public class Index implements Serializable {
         this._fill();
     }
 
-    public void update(Vector<Object> tuplePointerPlace,int TuplePos, String pageHash) {
-        int placeInIndex = (int) tuplePointerPlace.get(1);
-        int placeInPage = (int) tuplePointerPlace.get(0);
-        String hash = (String) tuplePointerPlace.get(2);
-        IndexPage iPage = data.get(placeInIndex);
-        iPage.load();
-        TuplePointer tp = iPage.get(hash, placeInPage);
-        tp.tuplePos = TuplePos;
-        tp.pageHash = pageHash;
-        iPage.saveAndFree();
-    }
-
     public Vector<Object> add(Tuple t, TuplePointer tp) throws DBAppException{
         // guaranted to be array of one element as _formateArga will form an exeact value query
         int posInPage = 0;
         int posInIndex = 0;
         String hash = "";
+
+        // // !D
+        // if(t.getPrimeKey().equals("99-8528"))
+        //     System.out.println("*****Fount******, " + t.toString());
+
         for(int pos : this._getPositions(this._formateArgs(t))){
             posInIndex = pos;
             IndexPage iPage = this.data.get(pos);
@@ -90,7 +83,7 @@ public class Index implements Serializable {
                 // TODO add other methods in both tupe & tuplePointer to handle update and delete
                 // TODO we could use SUB/PUB pattern
                 Tuple tuple = tPage.data.get(j);
-                TuplePointer tp = new TuplePointer(tPage.getPageName(), j);
+                TuplePointer tp = new TuplePointer(tuple.primaryKeyName, tuple.getPrimeKey());
                 for(int pos : this._getPositions(this._formateArgs(tuple))){
                     Vector<TuplePointer> _tmp = (pagePack.containsKey(pos) ? pagePack.get(pos) : new Vector<>());
                     _tmp.add(tp);
@@ -359,24 +352,6 @@ public class Index implements Serializable {
     //     tp.tuplePos=TuplePos;
     //     iPage.saveAndFree();
     // }
-
-    public void update(Vector<Object> tuplePointerPlace, int TuplePos) {
-        int placeInIndex = (int) tuplePointerPlace.get(1);
-        int placeInPage = (int) tuplePointerPlace.get(0);
-        String hash = (String) tuplePointerPlace.get(2);
-        IndexPage iPage = data.get(placeInIndex);
-
-        if(iPage == null){
-            iPage = new IndexPage(this.context, this, placeInIndex, this.context.getPathToIndexes());
-            System.out.println("DE7K");
-        }
-        // System.out.println("D: " + placeInIndex + " ," + hash);
-        iPage.load();
-        TuplePointer tp = iPage.get(hash, placeInPage);
-        tp.tuplePos = TuplePos;
-        iPage.saveAndFree();
-    }
-
 
     public Vector<TuplePointer> delete(Vector<Object> place) throws DBAppException {
         int placeInIndex = (int) place.get(1);

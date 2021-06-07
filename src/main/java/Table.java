@@ -71,8 +71,6 @@ class Table implements Serializable {
             }
         }
 
-        // TODO write this info to the csv also
-
         // save the table object to the disk
         this._saveChanges();
         this._updateMetaData();
@@ -90,6 +88,8 @@ class Table implements Serializable {
     public void insert(Hashtable<String, Object> colNameValue) throws DBAppException {
 
         this._validate(colNameValue, false);
+       
+        
 
         Vector<Set<String>> Index = new Vector<>();
         for (Set<String> set : indexes.keySet()) {
@@ -105,12 +105,20 @@ class Table implements Serializable {
             }
         }
 
+         // !D
         Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
-        Vector TupleIndex;
-        int pageIndex = this._searchPages(tuple);
-        // System.out.printf("[LOG] inserting %s in page %d\n", tuple.toString(),
-        // pageIndex);
+        if(tuple.getPrimeKey().equals("80-3107")){
+            System.out.println(Index.size());
+            System.out.println("*****Fount******, " + tuple.toString() + " " + this.name);
+        }
+ 
 
+        
+        int pageIndex = this._searchPages(tuple);
+        // init the tuple pointer to the tuple
+        TuplePointer tp = new TuplePointer(this.primaryKeyName, colNameValue.get(this.primaryKeyName));
+       
+        // correcting the page index from the BS
         while (pageIndex < this.buckets.size()
                 && ((Comparable) buckets.get(pageIndex).min).compareTo(tuple.get(this.primaryKeyName)) <= 0) {
             pageIndex++;
@@ -118,83 +126,25 @@ class Table implements Serializable {
 
         pageIndex = Math.max(0, --pageIndex);
 
+        // inserting the tuple in the right place and handle the overflow
         if (pageIndex == 0 && this.buckets.size() == 0) {
             Page page = new Page(pathToPages);
             page.add(tuple);
-            int index = 0;
-            TuplePointer tp = new TuplePointer(page.getPageName(), index);
-            for (Set<String> indSet : Index) {
-                Index ind = indexes.get(indSet);
-                Vector<Object> res = ind.add(tuple, tp);
-                Vector<Object> reslt = new Vector<>();
-                reslt.add(res);
-                reslt.add(indSet);
-                tuple.placeInIndex.add(reslt);
-            }
             page.saveAndFree();
             this.buckets.add(page);
         } else {
             Page page = this.buckets.get(pageIndex);
             if (page.size() < DBApp.maxPerPage) {
                 page.load();
-                int index = (int) page.insert(tuple, false).get(1);
-                TuplePointer tp = new TuplePointer(page.getPageName(), index);
-                for (Set<String> indSet : Index) {
-                    Index ind = indexes.get(indSet);
-                    Vector<Object> res = ind.add(tuple, tp);
-                    // System.out.println("IN: " + (int) res.get(1) + " ," + (String) res.get(2));
-                    Vector<Object> reslt = new Vector<>();
-                    reslt.add(res);
-                    reslt.add(indSet);
-                    tuple.placeInIndex.add(reslt);
-                }
-                if (index != page.data.size() - 1) {
-                    for (int updateIndex = index; updateIndex < page.data.size(); updateIndex++) {
-                        Tuple t = page.data.get(updateIndex);
-                        for (Object place : t.placeInIndex) {
-                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                    .update((Vector<Object>) ((Vector<Object>) place).get(0), updateIndex);
-                        }
-                    }
-                }
+                page.insert(tuple, false);
                 page.saveAndFree();
             } else if (pageIndex != this.buckets.size() - 1 && buckets.get(pageIndex + 1).size() < DBApp.maxPerPage) {
                 Page nxtPage = buckets.get(pageIndex + 1);
                 nxtPage.load();
                 page.load();
                 // get the last tuple
-                TupleIndex = (Vector) page.insert(tuple, true);
-                int index = (int) TupleIndex.get(1);
-                TuplePointer tp = new TuplePointer(nxtPage.getPageName(), 0);
-                if (index != page.data.size()) {
-                    tp = new TuplePointer(page.getPageName(), index);
-                }
-                for (Set<String> indSet : Index) {
-                    Index ind = indexes.get(indSet);
-                    Vector<Object> res = ind.add(tuple, tp);
-                    Vector<Object> reslt = new Vector<>();
-                    reslt.add(res);
-                    reslt.add(indSet);
-                    tuple.placeInIndex.add(reslt);
-                }
-                tuple = (Tuple) TupleIndex.get(0);
-                int i = (int) nxtPage.insert(tuple, false).get(1);
-                if (index != page.data.size()) {
-                    for (int updateIndex = index; updateIndex < page.data.size(); updateIndex++) {
-                        Tuple Tuple = page.data.get(updateIndex);
-                        for (Object place : Tuple.placeInIndex) {
-                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                    .update((Vector<Object>) ((Vector<Object>) place).get(0), updateIndex);
-                        }
-                    }
-                }
-                for (int updateIndex = 0; updateIndex < nxtPage.data.size(); updateIndex++) {
-                    Tuple Tuple = page.data.get(updateIndex);
-                    for (Object place : Tuple.placeInIndex) {
-                        indexes.get((Set<String>) ((Vector<Object>) place).get(1)).update(
-                                (Vector<Object>) ((Vector<Object>) place).get(0), updateIndex, nxtPage.getPageName());
-                    }
-                }
+                tuple = page.insert(tuple, true);
+                nxtPage.insert(tuple, false);
                 page.saveAndFree();
                 nxtPage.saveAndFree();
             } else if (pageIndex != 0 && buckets.get(pageIndex - 1).size() < DBApp.maxPerPage) {
@@ -202,86 +152,32 @@ class Table implements Serializable {
                 prevPage.load();
                 page.load();
                 // get the first tuple
-                TupleIndex = (Vector) page.insert(tuple, false);
-                tuple = (Tuple) TupleIndex.get(0);
-                int index = (int) TupleIndex.get(1);
-                TuplePointer tp = new TuplePointer(prevPage.getPageName(), prevPage.data.size());
-                if (index != 0) {
-                    tp = new TuplePointer(page.getPageName(), index);
-                }
-                for (Set<String> indSet : Index) {
-                    Index ind = indexes.get(indSet);
-                    Vector<Object> res = ind.add(tuple, tp);
-                    Vector<Object> reslt = new Vector<>();
-                    reslt.add(res);
-                    reslt.add(indSet);
-                    tuple.placeInIndex.add(reslt);
-                }
-                int i = (int) prevPage.insert(tuple, false).get(1);
-                if (index != 0) {
-                    for (Object place : tuple.placeInIndex) {
-                        indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                .update((Vector<Object>) ((Vector<Object>) place).get(0), i, prevPage.getPageName());
-                    }
-                } else {
-                    for (int updateIndex = index; updateIndex < page.data.size(); updateIndex++) {
-                        Tuple Tuple = page.data.get(updateIndex);
-                        for (Object place : Tuple.placeInIndex) {
-                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                    .update((Vector<Object>) ((Vector<Object>) place).get(0), updateIndex);
-                        }
-                    }
-                }
+                tuple = page.insert(tuple, false);
+                prevPage.insert(tuple, false);
                 page.saveAndFree();
                 prevPage.saveAndFree();
             } else {
                 Page nxtPage = new Page(pathToPages);
                 page.load();
-                Vector<Object> result = page.insertAndSplit(tuple);
-                Vector<Tuple> newData = (Vector<Tuple>) result.get(0);
-                boolean newpage = (boolean) result.get(1);
-                int index = (int) result.get(2);
-                if (newpage) {
-                    TuplePointer tp = new TuplePointer(nxtPage.getPageName(), index);
-                    for (Set<String> indSet : Index) {
-                        Index ind = indexes.get(indSet);
-                        Vector<Object> res = ind.add(tuple, tp);
-                        Vector<Object> reslt = new Vector<>();
-                        reslt.add(res);
-                        reslt.add(indSet);
-                        tuple.placeInIndex.add(reslt);
-                    }
-                } else {
-                    TuplePointer tp = new TuplePointer(page.getPageName(), index);
-                    for (Set<String> indSet : Index) {
-                        Index ind = indexes.get(indSet);
-                        Vector<Object> res = ind.add(tuple, tp);
-                        Vector<Object> reslt = new Vector<>();
-                        reslt.add(res);
-                        reslt.add(indSet);
-                        tuple.placeInIndex.add(reslt);
-                    }
-                    for (int updateIndex = index; updateIndex < page.data.size(); updateIndex++) {
-                        Tuple Tuple = page.data.get(updateIndex);
-                        for (Object place : Tuple.placeInIndex) {
-                            indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                    .update((Vector<Object>) ((Vector<Object>) place).get(0), updateIndex);
-                        }
-                    }
-                }
+                Vector<Tuple> newData = page.insertAndSplit(tuple);
                 nxtPage.setData(newData);
                 page.saveAndFree();
                 nxtPage.saveAndFree();
                 this.buckets.add(pageIndex + 1, nxtPage);
-                for (Tuple Tuple : newData) {
-                    for (Object place : Tuple.placeInIndex) {
-                        indexes.get((Set<String>) ((Vector<Object>) place).get(1)).update(
-                                (Vector<Object>) ((Vector<Object>) place).get(0), newData.indexOf(Tuple),
-                                nxtPage.getPageName());
-                    }
-                }
             }
         }
+
+        // insert the tuplepointer in the related indexes
+        for (Set<String> indSet : Index) {
+            Index ind = indexes.get(indSet);
+            Vector<Object> res = ind.add(tuple, tp);
+            Vector<Object> reslt = new Vector<>();
+            reslt.add(res);
+            reslt.add(indSet);
+            tuple.placeInIndex.add(reslt);
+        }
+
+        
 
         this.size++;
         this.spaceUtlize = this.size / (this.buckets.size() * DBApp.maxPerPage * 1.0);
@@ -308,6 +204,20 @@ class Table implements Serializable {
         return index;
     }
 
+    public int getPagePos(Tuple tuple){
+        System.out.println("t: " + tuple + " " + tuple.primaryKeyName + " ");
+        int pageIndex = this._searchPages(tuple);
+        // correcting the page index from the BS
+        while (pageIndex < this.buckets.size()
+                && ((Comparable) buckets.get(pageIndex).min).compareTo(tuple.get(this.primaryKeyName)) <= 0) {
+            pageIndex++;
+        }
+
+        pageIndex = Math.max(0, --pageIndex);
+        return pageIndex;
+    }
+
+ 
     public void update(String clusteringKeyValue, Hashtable<String, Object> colNameValue) throws DBAppException {
 
         this._validate(colNameValue, true);
@@ -345,27 +255,16 @@ class Table implements Serializable {
                 System.out.println("[LOG] updating the page\n");
                 Page page = this.buckets.get(i);
                 page.load();
-                page.update(tuple, colNameValue);
-                int tupleInd = page.data.indexOf(tuple);
-                if (tupleInd != -1) {
-                    tuple = page.data.get(tupleInd);
-                    for (Object place : tuple.placeInIndex) {
-                        Vector<TuplePointer> tps = this.indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                                .delete((Vector<Object>) ((Vector<Object>) place).get(0));
-                        for (TuplePointer tp : tps) {
-                            String pageHash = tp.pageHash;
-                            int pageIndex = tp.tuplePos;
-                            Page p = this.get(pageHash);
-                            if (p != null) {
-                                Tuple t = p.data.get(pageIndex);
-                                if (t != null) {
-                                    Vector<Object> placeInIndex = (Vector<Object>) t.placeInIndex.get(1);
-                                    placeInIndex.add(1, ((int) placeInIndex.remove(1) - 1));
-                                }
-                            }
-                        }
-                        TuplePointer tp = new TuplePointer(page.getPageName(), tupleInd);
-                        this.indexes.get((Set<String>) ((Vector<Object>) place).get(1)).add(tuple, tp);
+                Tuple newTuple = page.update(tuple, colNameValue);
+                TuplePointer tp = new TuplePointer(newTuple.primaryKeyName, newTuple.getPrimeKey());
+                // readd the tp into the indexes
+                if(newTuple != null){
+                    for(Object o  : newTuple.placeInIndex){
+                        Vector<Object> posInfo = (Vector<Object>) o;
+                        Index indexToUpdate = (Index) posInfo.get(1);
+                        Vector<Object> posInIndex = (Vector<Object>) posInfo.get(0);
+                        indexToUpdate.delete(posInIndex);
+                        indexToUpdate.add(newTuple, tp);
                     }
                 }
                 page.saveAndFree();
@@ -464,31 +363,19 @@ class Table implements Serializable {
 
             for (Integer i : indexes) {
                 Tuple tuple = page.remove(i.intValue());
-                for (Object place : tuple.placeInIndex) {
-                    Vector<TuplePointer> tps = this.indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                            .delete((Vector<Object>) ((Vector<Object>) place).get(0));
-                    for (TuplePointer tp : tps) {
-                        String pageHash = tp.pageHash;
-                        int pageIndex = tp.tuplePos;
-                        Page p = this.get(pageHash);
-                        if (p != null) {
-                            Tuple t = p.data.get(pageIndex);
-                            if (t != null) {
-                                Vector<Object> placeInIndex = (Vector<Object>) t.placeInIndex.get(1);
-                                placeInIndex.add(1, ((int) placeInIndex.remove(1) - 1));
-                            }
-                        }
+                // delte the tp from the indexes
+                if(tuple != null){
+                    for(Object o  : tuple.placeInIndex){
+                        Vector<Object> posInfo = (Vector<Object>) o;
+                        Index indexToUpdate = (Index) posInfo.get(1);
+                        Vector<Object> posInIndex = (Vector<Object>) posInfo.get(0);
+                        indexToUpdate.delete(posInIndex);
                     }
                 }
+               
                 this.size--;
             }
 
-            for (Tuple tuple : page.data) {
-                for (Object place : tuple.placeInIndex) {
-                    this.indexes.get((Set<String>) ((Vector<Object>) place).get(1))
-                            .update((Vector<Object>) ((Vector<Object>) place).get(0), page.data.indexOf(tuple));
-                }
-            }
             // if the page holds no value then delete it
             if (page.data.size() == 0) {
                 // remove the pointer of it from the bucket
@@ -548,6 +435,7 @@ class Table implements Serializable {
             page.free();
         }
     }
+
 
     // gets the rows by matching all the columnNameValues
     private Hashtable<Page, Vector<Integer>> _searchRows(Hashtable<String, Object> columnNameVlaue) {

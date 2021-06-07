@@ -65,36 +65,36 @@ public class IndexPage implements Serializable{
         }
     }
 
+
     public Vector<Tuple> get(Vector<SQLTerm> columns) throws DBAppException{
         Vector<Tuple> res = new Vector<>();
         System.out.println("[LOG] HEY IAM HERE");
-        Hashtable<String, Vector<Integer>> pointerPack = new Hashtable<>();
+        Hashtable<Integer, Vector<Tuple>> pointerPack = new Hashtable<>();
         
         // grouping the tuples by pages to minimize the IO operations
         for(TuplePointer tp : this.data){
-            Vector<Integer> _tmp = (
-                pointerPack.containsKey(tp.pageHash) ? pointerPack.get(tp.pageHash) : new Vector<>()
+            Tuple _tuple = Utils.wrapTuplePointer(tp);
+            int tPagePos = this.context.getPagePos(_tuple);
+            Vector<Tuple> _tmp = (
+                pointerPack.containsKey(tPagePos) ? pointerPack.get(tPagePos) : new Vector<>()
             );
-            _tmp.add(tp.tuplePos);
-            pointerPack.put(tp.pageHash, _tmp);
+            _tmp.add(_tuple);
+            pointerPack.put(tPagePos, _tmp);
         }
 
-        for(Map.Entry<String, Vector<Integer>> entries: pointerPack.entrySet()){
-            String pageHash = entries.getKey();
-            Vector<Integer> tuples = entries.getValue();
-            Page page = null;
-            for(Page p : this.context.buckets)
-                if(p.getPageName().equals(pageHash)){
-                    page = p;
-                    break;
-                }
+        for(Map.Entry<Integer, Vector<Tuple>> entries: pointerPack.entrySet()){
+            Integer tPagePos = entries.getKey();
+            Vector<Tuple> tuples = entries.getValue();
+            
+            Page page = this.context.buckets.get(tPagePos);
+
             if(page == null){
                 System.out.printf("[ERROR] this page dose not exists %s\n", pageHash);
                 throw new DBAppException();
             }
             page.load();
-            for(int t : tuples){
-                Tuple tuple = page.data.get(t);
+            for(Tuple tr : tuples){
+                Tuple tuple = page.getTupleByWrapper(tr);
                 if(Utils.doesTupleMatch(tuple, columns))
                     res.add(tuple);
             }

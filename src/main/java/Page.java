@@ -74,7 +74,7 @@ class Page implements Serializable {
         return min;
     }
 
-    public Vector<Object> insert(Tuple tuple, boolean next) throws DBAppException {
+    public Tuple insert(Tuple tuple, boolean next) throws DBAppException {
         Tuple res = null;
 
         int index = this._searchTuple(tuple, false);
@@ -89,18 +89,24 @@ class Page implements Serializable {
         }
 
         this._updateCachedValues();
-        Vector<Object> result = new Vector<>();
-        result.add(res);
-        result.add(index);
 
-        return result;
+        return res;
     }
 
-    public Vector<Object> insertAndSplit(Tuple tuple)throws DBAppException {
-        Vector<Object> res = new Vector<>();
-        Vector<Object> TupleIndex =  this.insert(tuple, true);
-        Tuple last = (Tuple)TupleIndex.get(0);
-        int index = (int) TupleIndex.get(1);
+    public Tuple getTupleByWrapper(Tuple tupleWrapper) throws DBAppException{
+
+        int tuplePos = this._searchTuple(tupleWrapper, true);
+        if(tuplePos == -1){
+            System.out.printf("[ERROR] this tuple %s does not exists \n", tupleWrapper.toString());
+            throw new DBAppException();
+        }
+        return this.data.get(tuplePos);
+    }
+
+    public Vector<Tuple> insertAndSplit(Tuple tuple)throws DBAppException {
+       
+        Tuple last = this.insert(tuple, true);
+
         Vector<Tuple> result = new Vector<Tuple>();
         int maxPerPage = DBApp.maxPerPage;
         
@@ -110,15 +116,7 @@ class Page implements Serializable {
         result.add(last);
         this._updateCachedValues();
         
-        boolean newPage = false;
-        if(index > maxPerPage/2) {
-        	index = index-maxPerPage/2;
-        	newPage = true;
-        }
-        res.add(result);
-        res.add(newPage);
-        res.add(index);
-        return res;
+       return result;
     }
 
     public void setData(Vector<Tuple> newData) {
@@ -130,16 +128,19 @@ class Page implements Serializable {
         return this.pageName;
     }
 
-    public void update(Tuple pk, Hashtable<String, Object> colNameVlaue) throws DBAppException {
+    public Tuple update(Tuple pk, Hashtable<String, Object> colNameVlaue) throws DBAppException {
         int index = this._searchTuple(pk, true);
-        // System.out.printf("[LOG] the position is %d\n", index);
         if (index != -1) {
+            // this loop actully does nothing
             while(pk.compareTo(this.data.get(index)) == 0 && index < this.data.size()){
                 for (Map.Entry<String, Object> entries : colNameVlaue.entrySet())
                     this.data.get(index).put(entries.getKey(), entries.getValue());
-                index++;
+                // as there are no duplicates in the primarykey
+                return this.data.get(index);
+                // index++;
             }
         }
+        return null;
     }
 
     public void add(Tuple tuple) {
