@@ -124,8 +124,6 @@ public class ConsistancyTests {
         final DBApp dbApp = new DBApp();
         dbApp.init();
 
-
-
         // Index 1
         System.out.println("[LOG] Creating the first Index");
         Assertions.assertDoesNotThrow(
@@ -267,6 +265,106 @@ public class ConsistancyTests {
         });
 
        }
+
+       @Test
+       @Order(6)
+    public void testAfterBforeStudent2() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students",
+            "id",
+            ">",
+            "44-1010"
+        );
+   
+        SQLTerm t2 = new SQLTerm(
+            "students",
+            "gpa",
+            "<=",
+            new Double(2)
+        );
+
+        SQLTerm t12 = new SQLTerm(
+            "students2",
+            "id",
+            ">",
+            "44-1010"
+        );
+
+        SQLTerm t22 = new SQLTerm(
+            "students2",
+            "gpa",
+            "<=",
+            new Double(2)
+        );
+
+        Iterator itr1 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t1, t2
+            }, 
+            new String[]{
+                "or"
+            }
+        );
+
+        System.out.println("============================");
+
+        Iterator itr2 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t12, t22
+            }, 
+            new String[]{
+                "or"
+            }
+        );
+
+        Assertions.assertEquals(itr1.hasNext(), itr2.hasNext());
+
+        Vector<Tuple> set1 = new Vector<>();
+        Vector<Tuple> set2 = new Vector<>();
+
+        while(itr1.hasNext()) set1.add((Tuple) itr1.next());
+        while(itr2.hasNext()) set2.add((Tuple) itr2.next());
+
+        System.out.printf("[LOG] %d should equal %d\n", set1.size(), set2.size());
+
+
+        Collections.sort(set1);
+        Collections.sort(set2);
+
+        // System.out.println("===================");
+        // for(Tuple t : set1)
+        //     System.out.println(t);
+
+        // System.out.println("===================");
+        // for(Tuple t : set2)
+        //     System.out.println(t);
+
+        // System.out.println("===================");
+        // for(Tuple t : set2)
+        //     if(!set1.contains(t))
+        //         System.out.println("D: " + t.toString());
+    
+        Set<Tuple> s1 = set1.stream().collect(Collectors.toSet());
+        Set<Tuple> s2 = set2.stream().collect(Collectors.toSet());
+        
+        s1.retainAll(s2);
+
+        System.out.printf("[LOG] size in common ==> %d\n", s1.size());
+        Assertions.assertEquals(set1.size(), set2.size());
+
+        Collections.sort(set1);
+        Collections.sort(set2);
+
+        Assertions.assertDoesNotThrow(() -> {
+            for(int i=0; i<set1.size();i++)
+                if(!(set1.get(i).compareTo(set2.get(i)) == 0))
+                    throw new Exception("non equal");
+        });
+
+    }
 
    
     private void insertStudentRecords(DBApp dbApp, int limit) throws Exception {

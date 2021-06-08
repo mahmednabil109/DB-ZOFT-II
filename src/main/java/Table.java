@@ -103,17 +103,11 @@ class Table implements Serializable {
             if (inIndex) {
                 Index.add(set);
             }
-        }
-
-         // !D
-        Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
-        if(tuple.getPrimeKey().equals("80-3107")){
-            System.out.println(Index.size());
-            System.out.println("*****Fount******, " + tuple.toString() + " " + this.name);
-        }
- 
+        } 
 
         
+        Tuple tuple = new Tuple(this.primaryKeyName, colNameValue);
+        Tuple orgTuple = tuple;
         int pageIndex = this._searchPages(tuple);
         // init the tuple pointer to the tuple
         TuplePointer tp = new TuplePointer(this.primaryKeyName, colNameValue.get(this.primaryKeyName));
@@ -170,11 +164,11 @@ class Table implements Serializable {
         // insert the tuplepointer in the related indexes
         for (Set<String> indSet : Index) {
             Index ind = indexes.get(indSet);
-            Vector<Object> res = ind.add(tuple, tp);
+            Vector<Object> res = ind.add(orgTuple, tp);
             Vector<Object> reslt = new Vector<>();
             reslt.add(res);
             reslt.add(indSet);
-            tuple.placeInIndex.add(reslt);
+            orgTuple.placeInIndex.add(reslt);
         }
 
         

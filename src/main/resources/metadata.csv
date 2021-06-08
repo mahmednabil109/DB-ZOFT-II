@@ -3,7 +3,3 @@ students,gpa,java.lang.Double,false,true,0.7,5.0
 students,dob,java.util.Date,false,true,1990-01-01,2000-12-31
 students,first_name,java.lang.String,false,true,"AAAAAA","zzzzzz"
 students,last_name,java.lang.String,false,false,"AAAAAA","zzzzzz"
-transcripts,student_id,java.lang.String,false,true,"43-0000","99-9999"
-transcripts,date_passed,java.util.Date,false,false,1990-01-01,2020-12-31
-transcripts,course_name,java.lang.String,false,true,"AAAAAA","zzzzzz"
-transcripts,gpa,java.lang.Double,true,true,0.7,5.0
