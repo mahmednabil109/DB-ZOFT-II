@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@SuppressWarnings({"all", "unchecked"})
 public class Index implements Serializable {
 
     private Table context;
@@ -219,14 +220,39 @@ public class Index implements Serializable {
                                         Collectors.toCollection(Vector::new)
                                     );
         // !D
-        System.out.printf("[LOG] this is the pos %s\n", pages.toString());
-        
+        // System.out.printf("[LOG] this is the pos %s\n", pages.toString());
+        Vector<Vector<Object>> pack = new Vector<>();
         // get the needed tuples after evaluating the tuple pointers
         for(IndexPage iPage : pages){
             if(iPage == null) continue;
             iPage.load();
-            res.addAll(iPage.get(columns));
+            pack.addAll(iPage.get(columns));
             iPage.free();
+        }
+
+        Hashtable<Integer, Vector<Tuple>> pagePack = new Hashtable<>();
+
+        for(Vector<Object> pair : pack){
+            int pagePos = (int) pair.get(0);
+            Tuple tr = (Tuple) pair.get(1);
+            Vector<Tuple> _vec = (
+                pagePack.containsKey(pagePos) ? pagePack.get(pagePos) : new Vector<>()
+            );
+            _vec.add(tr);
+            pagePack.put(pagePos, _vec);
+        }
+
+        for(Map.Entry<Integer, Vector<Tuple>> entries : pagePack.entrySet()){
+            int pagePos = entries.getKey();
+            Vector<Tuple> tupleWrappers = entries.getValue();
+            Page page = this.context.buckets.get(pagePos);
+            page.load();
+            for(Tuple tr : tupleWrappers){
+                Tuple tuple = page.getTupleByWrapper(tr);
+                if(Utils.doesTupleMatch(tuple, columns))
+                    res.add(tuple);
+            }
+            page.free();
         }
 
         HashSet<Tuple> _tmp = new HashSet<>();

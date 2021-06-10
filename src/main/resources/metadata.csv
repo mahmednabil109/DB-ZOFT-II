@@ -1,3 +1,11 @@
+transcripts,gpa,java.lang.Double,true,false,0.7,5.0
+transcripts,date_passed,java.util.Date,false,false,1990-01-01,2020-12-31
+transcripts,course_name,java.lang.String,false,false,"AAAAAA","zzzzzz"
+transcripts,student_id,java.lang.String,false,false,"43-0000","99-9999"
+transcripts2,gpa,java.lang.Double,true,false,0.7,5.0
+transcripts2,date_passed,java.util.Date,false,false,1990-01-01,2020-12-31
+transcripts2,course_name,java.lang.String,false,false,"AAAAAA","zzzzzz"
+transcripts2,student_id,java.lang.String,false,false,"43-0000","99-9999"
 students,id,java.lang.String,true,true,"43-0000","99-9999"
 students,gpa,java.lang.Double,false,true,0.7,5.0
 students,dob,java.util.Date,false,true,1990-01-01,2000-12-31

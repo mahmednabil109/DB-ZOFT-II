@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 //import main.java.*;
 
+@SuppressWarnings({"all", "unchecked"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class Milestone1Tests_v3 {
     @Test

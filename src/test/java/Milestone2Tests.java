@@ -9,7 +9,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 
 
-
+@SuppressWarnings({"all", "unchecked"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class Milestone2Tests {
 

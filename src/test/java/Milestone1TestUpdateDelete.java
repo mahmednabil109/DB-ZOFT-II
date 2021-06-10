@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
+@SuppressWarnings({"all", "unchecked"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class Milestone1TestUpdateDelete {
 

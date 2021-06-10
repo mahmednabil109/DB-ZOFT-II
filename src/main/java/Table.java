@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@SuppressWarnings({"all", "unchecked"})
 class Table implements Serializable {
 
     // finalls
@@ -683,6 +684,16 @@ class Table implements Serializable {
             page.free();
         }
         return res;
+    }
+
+    public void validateTerms(SQLTerm sqlTerms[]) throws DBAppException, ClassNotFoundException{
+        for(SQLTerm st : sqlTerms){
+            if(!this.htbColumnsNameType.containsKey(st._strColumnName))
+                throw new DBAppException();
+            Class c = Class.forName(this.htbColumnsNameType.get(st._strColumnName));
+            if(!c.equals(st._objValue.getClass()))
+                throw new DBAppException();
+        }
     }
 
 }

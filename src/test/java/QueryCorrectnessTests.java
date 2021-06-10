@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+@SuppressWarnings({"all", "unchecked"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class QueryCorrectnessTests {
 
@@ -97,7 +98,7 @@ public class QueryCorrectnessTests {
     }
 
     @Test
-    @Order(5)
+    @Order(4)
     public void testRecordInsertions() throws Exception {
         DBApp dbApp = new DBApp();
         dbApp.init();
@@ -124,7 +125,7 @@ public class QueryCorrectnessTests {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     public void createIndexes() throws Exception {
         final DBApp dbApp = new DBApp();
         dbApp.init();
@@ -423,6 +424,334 @@ public class QueryCorrectnessTests {
             }
         });
     }
+
+    @Test
+    @Order(9)
+    public void testXorWithoutIndex() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students2",
+            "id",
+            ">",
+            "70-1010"
+        );
+
+        SQLTerm t2 = new SQLTerm(
+            "students2",
+            "gpa",
+            "=",
+            new Double(1.31)
+        );
+
+        Iterator itr1 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t1
+            }, 
+            new String[0]
+        );
+
+        System.out.println("============================");
+
+        Iterator itr2 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t2
+            }, 
+            new String[0]
+        );
+
+        System.out.println("============================");
+        
+        Iterator itr3 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t1, t2
+            }, 
+            new String[]{
+                "xor"
+            }
+        );
+
+        Set<Tuple> set1 = new HashSet<>();
+        Set<Tuple> set2 = new HashSet<>();
+        Set<Tuple> set3 = new HashSet<>();
+        Set<Tuple> _set1 = new HashSet<>();
+        Set<Tuple> _set2 = new HashSet<>();
+
+
+        while(itr1.hasNext()){
+            Tuple t = (Tuple) itr1.next();
+            set1.add(t);
+            _set1.add(t);
+        }
+        while(itr2.hasNext()){
+            Tuple t = (Tuple) itr2.next();
+            set2.add(t);
+            _set2.add(t);
+        }
+        while(itr3.hasNext()) set3.add((Tuple) itr3.next());
+
+        System.out.printf("[LOG] query 1 size %d\n", set1.size());
+        System.out.printf("[LOG] query 2 size %d\n", set2.size());
+
+        for(Tuple t : set1) System.out.println(t);
+        System.out.println("=========");
+
+        for(Tuple t : set2) System.out.println(t);
+        System.out.println("=========");
+        
+        Set<Tuple> _tmp = new HashSet<>();
+        Set<Tuple> _tmp2 = new HashSet<>();
+        _tmp.addAll(set1);
+        _tmp.addAll(set2);
+        for(Tuple t : _tmp){
+            if(set1.contains(t) ^ set2.contains(t))
+                _tmp2.add(t);
+        }
+
+        System.out.printf("[LOG] %d should equal %d\n", set3.size(), _tmp2.size());
+
+        Assertions.assertEquals(set3.size(), _tmp2.size());
+
+        Assertions.assertDoesNotThrow(() -> {
+            for(Tuple t : set3){
+                if(!(_set1.contains(t) ^ _set2.contains(t)))
+                    throw new Exception("Wrong `xor` Operation");
+            }
+        });
+    }
+
+    @Test
+    @Order(10)
+    public void testExactIndex() throws Exception{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students2",
+            "gpa",
+            "=",
+            new Double(1.0)
+        );
+
+        SQLTerm t2 = new SQLTerm(
+            "students2",
+            "id",
+            ">",
+            "50-0000"
+        );
+
+        SQLTerm t3 = new SQLTerm(
+            "students2",
+            "first_name",
+            ">",
+            "m"
+        );
+
+        Iterator itr1 = dbApp.selectFromTable(
+            new SQLTerm [] {
+                t1, t2, t3
+            }, 
+            new String[]{
+                "or", "and"
+            }
+        );
+
+        Assertions.assertTrue(itr1.hasNext());
+
+        Set<Tuple> sql = new HashSet<>();
+
+        while(itr1.hasNext()) sql.add((Tuple) itr1.next());
+        Tuple [] tuples = sql.toArray(Tuple[]::new);
+        System.out.println(tuples[0].toString() + " " + tuples[tuples.length - 1].toString());
+
+        Assertions.assertEquals(sql.size(), 110);
+
+       
+    }
+
+    @Order(11)
+    @Test
+    public void testSelectAll() throws DBAppException, ClassNotFoundException{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students2",
+            "gpa",
+            "=",
+            new Double(1.0)
+        );
+
+        SQLTerm t2 = new SQLTerm(
+            "students2",
+            "gpa",
+            "!=",
+            new Double(1.0)
+        );
+
+        Iterator itr = dbApp.selectFromTable(
+            new SQLTerm []{
+                t1, t2
+            }, 
+            new String []{
+                "or"
+            }
+        );
+
+        Vector<Tuple> res = new Vector<>();
+        while(itr.hasNext()) res.add((Tuple) itr.next());
+        Assertions.assertEquals(res.size(), 500);
+    }
+
+    @Order(12)
+    @Test
+    public void testDateRangeQuery() throws ClassNotFoundException, DBAppException{
+        
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+
+
+        SQLTerm t1 = new SQLTerm(
+            "students2",
+            "dob",
+            ">",
+            new Date(2000 - 1900, 11 - 1, 23)
+        );
+
+        Iterator itr = dbApp.selectFromTable(
+            new SQLTerm[]{
+                t1
+            }, 
+            new String[0]
+        );
+
+        Vector<Tuple> res = new Vector<>();
+        while(itr.hasNext()) res.add((Tuple) itr.next());
+
+        Assertions.assertEquals(res.size(), 4);
+
+    }
+
+    @Order(13)
+    @Test
+    public void testDateRangeQueryWI() throws ClassNotFoundException, DBAppException{
+        
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students",
+            "dob",
+            ">",
+            new Date(2000 - 1900, 11 - 1, 23)
+        );
+
+        Iterator itr = dbApp.selectFromTable(
+            new SQLTerm[]{
+                t1
+            }, 
+            new String[0]
+        );
+
+        Vector<Tuple> res = new Vector<>();
+        while(itr.hasNext()) res.add((Tuple) itr.next());
+
+        Assertions.assertEquals(res.size(), 4);
+
+    }
+
+    @Order(14)
+    @Test
+    public void testEmptySelection() throws ClassNotFoundException, DBAppException{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "students",
+            "gpa",
+            "<",
+            new Double(-.1)
+        );
+
+        SQLTerm t2 = new SQLTerm(
+            "students",
+            "gpa",
+            ">",
+            new Double(100)
+        );
+
+        Iterator itr1 = dbApp.selectFromTable(
+            new SQLTerm[]{
+                t1
+            }, 
+            new String[0]
+        );
+
+        Iterator itr2 = dbApp.selectFromTable(
+            new SQLTerm[]{
+                t2
+            }, 
+            new String[0]
+        );
+
+        Assertions.assertFalse(itr1.hasNext());
+        Assertions.assertFalse(itr2.hasNext());
+
+    }
+
+    @Order(15)
+    @Test
+    public void testBadQueries() throws ClassNotFoundException, DBAppException{
+        final DBApp dbApp = new DBApp();
+        dbApp.init();
+
+        SQLTerm t1 = new SQLTerm(
+            "studentsnotexists",
+            "gpa",
+            "<",
+            new Double(-.1)
+        );
+
+        SQLTerm t2 = new SQLTerm(
+            "students",
+            "gpa",
+            "=",
+            "not the correct type"
+        );
+
+        Assertions.assertThrows(DBAppException.class, () ->
+            // table not exists
+            dbApp.selectFromTable(
+                new SQLTerm[]{
+                    t1
+                }, 
+                new String[0]
+            )
+        );
+       
+        Assertions.assertThrows(DBAppException.class, () ->
+            // this was supposed to retriva the whole table but which one :<
+            // so throwing an exception was the right thing
+            dbApp.selectFromTable(
+                new SQLTerm[0], 
+                new String[0]
+            )
+        );
+
+        Assertions.assertThrows(DBAppException.class, () -> 
+            // type miss match
+            dbApp.selectFromTable(
+                new SQLTerm[]{
+                    t2
+                },
+                new String[0]
+            )
+        );
+       
+    }
+
 
    
     private void insertStudentRecords(DBApp dbApp, int limit) throws Exception {

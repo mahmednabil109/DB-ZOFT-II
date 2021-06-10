@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 
-// TODo implement comparable
+@SuppressWarnings({"all", "unchecked"})
 public class RangeWrapper implements Serializable{
 
     Class type;

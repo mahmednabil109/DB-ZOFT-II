@@ -14,6 +14,7 @@ import java.nio.file.*;
  * 
  **/
 
+@SuppressWarnings({"all", "unchecked"})
 public class DBApp implements DBAppInterface {
 
     // GLOBAL OPTIONS FOR THE DB
@@ -152,13 +153,22 @@ public class DBApp implements DBAppInterface {
     }
 
     @Override
-    public Iterator selectFromTable(SQLTerm[] sqlTerms, String[] arrayOperators) throws DBAppException {
+    public Iterator selectFromTable(SQLTerm[] sqlTerms, String[] arrayOperators) throws DBAppException, ClassNotFoundException {
+        
+        if(sqlTerms.length == 0)
+            throw new DBAppException();
+
+
         Table table = this._getTable(sqlTerms[0]._strTableName);
+        
         if (table == null) {
             System.out.printf("[ERROR] something habbens when openning table %s\n", sqlTerms[0]._strTableName);
             throw new DBAppException();
         }
-        if(sqlTerms.length!=1 && sqlTerms.length != 0){
+
+        table.validateTerms(sqlTerms);
+
+        if (sqlTerms.length != 1 && sqlTerms.length != 0) {
             Object[] all = mergeStatement(sqlTerms, arrayOperators);
             Vector<Object> allPost = convertToPost(all);
             allPost = doingAllAnd(allPost, table);
@@ -166,20 +176,17 @@ public class DBApp implements DBAppInterface {
             allPost = doingAllXor(allPost, table);
             System.out.println("ALLPOST: " + allPost);
             return ((HashSet<Tuple>) allPost.get(0)).iterator();
-        }
-        else if(sqlTerms.length != 0){
-            Vector<SQLTerm> sqlTerm=new Vector<>();
+        } else if (sqlTerms.length != 0) {
+            Vector<SQLTerm> sqlTerm = new Vector<>();
             sqlTerm.add(sqlTerms[0]);
-            Vector<Object> result=table.getBestIndex(sqlTerm);
-            if(result.size()!=0){
-                Index index=(Index) result.get(0);
+            Vector<Object> result = table.getBestIndex(sqlTerm);
+            if (result.size() != 0) {
+                Index index = (Index) result.get(0);
                 return index.search(sqlTerm).iterator();
-            }
-            else{
+            } else {
                 return table.search(sqlTerm).iterator();
             }
-        }
-        else{
+        } else {
             return table.retrieveALl().iterator();
         }
     }
@@ -264,16 +271,23 @@ public class DBApp implements DBAppInterface {
                         searchTerms.remove(o);
                     }
                     // result ==null || {} break
-                    HashSet<Tuple> result = index.search(maxVector);
-                    results.add(result);
+                    while (maxVector.size() != 0) {
+                        Vector<SQLTerm> search = new Vector<>();
+                        search.add(maxVector.remove(0));
+                        results.add(index.search(search));
+                    }
                 } else {
-                    HashSet<Tuple> result = table.search(searchTerms);
-                    searchTerms = new Vector<>();
-                    results.add(result);
+                    while (searchTerms.size() != 0) {
+                        Vector<SQLTerm> search = new Vector<>();
+                        search.add(searchTerms.remove(0));
+                        results.add(table.search(search));
+                    }
                 }
             }
             while (results.size() != 0 && results.size() != 1) {
-                results.add(mergeAll(results.remove(0), results.remove(results.size() - 1)));
+                HashSet<Tuple> _set = results.remove(0);
+                _set.addAll(results.remove(results.size() - 1));
+                results.add(_set);
             }
             for (int i = currentOr; i >= firstOrIndex - 2; i--) {
                 allPost.remove(i);
@@ -329,12 +343,17 @@ public class DBApp implements DBAppInterface {
                         searchTerms.remove(o);
                     }
                     // result ==null || {} break
-                    HashSet<Tuple> result = index.search(maxVector);
-                    results.add(result);
+                    while (maxVector.size() != 0) {
+                        Vector<SQLTerm> search = new Vector<>();
+                        search.add(maxVector.remove(0));
+                        results.add(index.search(search));
+                    }
                 } else {
-                    HashSet<Tuple> result = table.search(searchTerms);
-                    searchTerms = new Vector<>();
-                    results.add(result);
+                    while (searchTerms.size() != 0) {
+                        Vector<SQLTerm> search = new Vector<>();
+                        search.add(searchTerms.remove(0));
+                        results.add(table.search(search));
+                    }
                 }
             }
             while (results.size() != 0 && results.size() != 1) {
@@ -487,8 +506,8 @@ public class DBApp implements DBAppInterface {
     }
 
     public static boolean compareOpr(String opr1, String opr2) {
-        if (opr1.toLowerCase() == "and" || (opr1.toLowerCase() == "or" && opr2.toLowerCase() != "and")
-                || (opr2.toLowerCase() == "xor")) {
+        if (opr1.toLowerCase().equals("and") || (opr1.toLowerCase().equals("or") && !opr2.toLowerCase().equals("and"))
+                || (opr2.toLowerCase().equals("xor"))) {
             return true;
         }
         return false;
@@ -504,8 +523,9 @@ public class DBApp implements DBAppInterface {
         return null;
     }
 
-     // below method returns Iterator with result set if passed// strbufSQL is a select, otherwise returns null.
-     public Iterator parseSQL(StringBuffer strbufSQL ) throws DBAppException{
+    // below method returns Iterator with result set if passed// strbufSQL is a
+    // select, otherwise returns null.
+    public Iterator parseSQL(StringBuffer strbufSQL) throws DBAppException {
         return null;
     }
 }

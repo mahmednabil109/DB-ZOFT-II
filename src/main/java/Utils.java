@@ -1,10 +1,10 @@
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.*;
 
+@SuppressWarnings({"all", "unchecked"})
 public class Utils {
     
     // append the string `str` with `ch` to length `len`
@@ -85,6 +85,10 @@ public class Utils {
             }
       
         return res.toString();
+    }
+
+    public static String join(String[] elm, String p){
+        return Arrays.asList(elm).stream().collect(Collectors.joining(p));
     }
     
     public static long convertUnknown (String str){

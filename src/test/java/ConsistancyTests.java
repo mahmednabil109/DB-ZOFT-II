@@ -17,6 +17,7 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 //import main.java.*;
 
+@SuppressWarnings({"all", "unchecked"})
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ConsistancyTests {
 

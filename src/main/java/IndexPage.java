@@ -5,10 +5,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Paths;
-import java.util.Hashtable;
-import java.util.Map;
 import java.util.Vector;
 
+@SuppressWarnings({"all", "unchecked"})
 public class IndexPage implements Serializable{
 
     private IndexPage overflowPage;
@@ -30,7 +29,7 @@ public class IndexPage implements Serializable{
         this.data = new Vector<>();
         this.pathToPages = path;
         this.pageName = this.toString();
-        this.save();
+        this.saveAndFree();
     }
 
     public int indexOf(String hash,TuplePointer tp){
@@ -60,48 +59,31 @@ public class IndexPage implements Serializable{
         if(hash.equals(this.pageHash))
             return data.get(place);
         else{
-            System.out.println("what hash: " + hash + ", " + this.pageHash);
+            // System.out.println("what hash: " + hash + ", " + this.pageHash);
             return overflowPage.get(hash, place);
         }
     }
 
 
-    public Vector<Tuple> get(Vector<SQLTerm> columns) throws DBAppException{
-        Vector<Tuple> res = new Vector<>();
-        System.out.println("[LOG] HEY IAM HERE");
-        Hashtable<Integer, Vector<Tuple>> pointerPack = new Hashtable<>();
-        
+    public Vector<Vector<Object>> get(Vector<SQLTerm> columns) throws DBAppException{
+        Vector<Vector<Object>> res = new Vector<>();
+        // System.out.println("[LOG] HEY IAM HERE");
+  
         // grouping the tuples by pages to minimize the IO operations
         for(TuplePointer tp : this.data){
             Tuple _tuple = Utils.wrapTuplePointer(tp);
             int tPagePos = this.context.getPagePos(_tuple);
-            Vector<Tuple> _tmp = (
-                pointerPack.containsKey(tPagePos) ? pointerPack.get(tPagePos) : new Vector<>()
-            );
+            Vector<Object> _tmp = new Vector<>();
+            _tmp.add(tPagePos);
             _tmp.add(_tuple);
-            pointerPack.put(tPagePos, _tmp);
+            res.add(_tmp);
         }
 
-        for(Map.Entry<Integer, Vector<Tuple>> entries: pointerPack.entrySet()){
-            Integer tPagePos = entries.getKey();
-            Vector<Tuple> tuples = entries.getValue();
-            
-            Page page = this.context.buckets.get(tPagePos);
-
-            if(page == null){
-                System.out.printf("[ERROR] this page dose not exists %s\n", pageHash);
-                throw new DBAppException();
-            }
-            page.load();
-            for(Tuple tr : tuples){
-                Tuple tuple = page.getTupleByWrapper(tr);
-                if(Utils.doesTupleMatch(tuple, columns))
-                    res.add(tuple);
-            }
-            page.free();
+        if(this.overflowPage != null){
+            this.overflowPage.load();
+            res.addAll(this.overflowPage.get(columns));
+            this.overflowPage.free();
         }
-
-        if(this.overflowPage != null) res.addAll(this.overflowPage.get(columns));
         return res;
     }
 

@@ -4,6 +4,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@SuppressWarnings({"all", "unchecked"})
 class Tuple extends Observable implements Comparable<Tuple>, Serializable {
 
     // the name of the primaryKey to compare based on it

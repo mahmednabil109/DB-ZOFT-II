@@ -1,6 +1,7 @@
 import java.util.Hashtable;
 import java.util.Iterator;
 
+@SuppressWarnings({"all", "unchecked"})
 public interface DBAppInterface {
 
     void init();
@@ -15,7 +16,7 @@ public interface DBAppInterface {
 
     void deleteFromTable(String tableName, Hashtable<String, Object> columnNameValue) throws DBAppException;
 
-    Iterator selectFromTable(SQLTerm[] sqlTerms, String[] arrayOperators) throws DBAppException;
+    Iterator selectFromTable(SQLTerm[] sqlTerms, String[] arrayOperators) throws DBAppException, ClassNotFoundException;
 
 
 }

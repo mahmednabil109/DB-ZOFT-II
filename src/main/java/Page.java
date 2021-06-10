@@ -3,6 +3,7 @@ import java.nio.file.*;
 import java.util.*;
 
 // class to hold needed info for each page
+@SuppressWarnings({"all", "unchecked"})
 class Page implements Serializable {
 
     // to hold the reference "name" of the page on the desk

@@ -24,9 +24,14 @@ if not fileExists:
     conn.commit()
     print("[LOG] Done Creating TABLE student")
 
+    # 3shan ana 8lbans
+    limit = 500
+
     with open("../../main/resources/students_table.csv") as csvFile:
         lines = csvFile.readlines()
         for line in lines:
+            if limit == 0: break;
+            limit -= 1
             line = line.split(',')
             conn.execute(f"""
                 INSERT INTO student(id, first_name, last_name, dob, gpa)
@@ -36,10 +41,21 @@ if not fileExists:
         print("[LOG] Done Inserting the Data into the Table")
 
 cursor = conn.execute("""
-    SELECT * FROM student WHERE gpa = 1.0 order by id
+    SELECT * FROM student WHERE gpa = 1.0 or id > '50-0000' and first_name > 'm' order by id
 """)
 
 with open("./result.txt", "w") as result:
+    print("in")
+    for row in cursor:
+        print(row)
+        result.write(row.__str__())
+        result.write("\n")
+
+cursor = conn.execute("""
+    SELECT * FROM student WHERE dob > date('2000-11-23')
+""")
+
+with open("./daterange.txt", "w") as result:
     for row in cursor:
         print(row)
         result.write(row.__str__())
